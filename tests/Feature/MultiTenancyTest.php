@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Domains\Facilities\Models\Court;
-use App\Domains\Tenancy\Models\Tenant;
 use App\Domains\Identity\Models\User;
+use App\Domains\Tenancy\Models\Tenant;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;

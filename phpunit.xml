@@ -20,6 +20,10 @@
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <!-- Pin the test host to the central domain so domain-constrained central
+             routes resolve under the default (relative-path) test requests. -->
+        <env name="APP_URL" value="http://localhost"/>
+        <env name="CENTRAL_DOMAIN" value="localhost"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="sqlite"/>

@@ -11,6 +11,11 @@ services:
             # Override the bind-mounted .env so the container talks to the compose
             # services by name (Laravel's immutable dotenv won't clobber real env vars).
             CONTAINER_ROLE: app
+            # Access the dockerised app at http://lvh.me:8080 and clubs at
+            # http://<club>.lvh.me:8080 (lvh.me -> 127.0.0.1, with shared cookies).
+            APP_URL: http://lvh.me:8080
+            CENTRAL_DOMAIN: lvh.me
+            SESSION_DOMAIN: lvh.me
             DB_CONNECTION: pgsql
             DB_HOST: tennis-postgres
             DB_PORT: 5432

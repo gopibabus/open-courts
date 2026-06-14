@@ -6,7 +6,7 @@ document — every feature slice adds its events here.
 
 | Event | Context | Emitted when | Listeners (queued) |
 | --- | --- | --- | --- |
-| _(to be populated as feature slices land)_ | | | |
+| `ClubRegistered` | Tenancy | A club + owner are provisioned (after commit) | `SendClubWelcomeEmail` |
 
 ## Planned events by context
 

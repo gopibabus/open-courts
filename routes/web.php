@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Onboarding\RegisterClubController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -15,6 +16,12 @@ Route::domain(config('tenancy.central_domain'))->group(function () {
 
     // Design-system gallery (living reference for the monochrome / dot-matrix system).
     Route::get('ui', fn () => Inertia::render('ui-gallery'))->name('ui.gallery');
+
+    // Club onboarding — public signup that provisions a tenant + owner + roles.
+    Route::middleware('guest')->group(function () {
+        Route::get('register-club', [RegisterClubController::class, 'create'])->name('register-club.create');
+        Route::post('register-club', [RegisterClubController::class, 'store'])->name('register-club.store');
+    });
 
     Route::middleware(['auth'])->group(function () {
         Route::get('dashboard', function () {

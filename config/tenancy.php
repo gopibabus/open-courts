@@ -155,7 +155,10 @@ return [
          * disable asset() helper tenancy and explicitly use tenant_asset() calls in places
          * where you want to use tenant-specific assets (product images, avatars, etc).
          */
-        'asset_helper_tenancy' => true,
+        // Vite build assets are GLOBAL (shared across clubs), so asset() must NOT be
+        // rewritten to a per-tenant asset route — otherwise the SPA's JS/CSS 404s on
+        // club subdomains and the page renders blank.
+        'asset_helper_tenancy' => false,
     ],
 
     /**
