@@ -79,6 +79,16 @@ thin Controller + FormRequest → shadcn UI page → **Pest feature test + Playw
   Inertia XHR can't follow a cross-origin 302.
 - **`tenancy.asset_helper_tenancy` is `false`** — otherwise `asset()` (and thus Vite JS/CSS) is
   rewritten per-tenant and the SPA renders blank on club subdomains.
+- **The `{tenant}` domain route param is forgotten at request time** (`ForgetTenantRouteParameter`
+  middleware) and supplied as a `URL::default` for generation. Without forgetting it, Laravel
+  passes it as a leading positional arg, so `Foo $foo` route-model binding receives the tenant
+  slug string and `route('x.show', $model)` feeds the model into `{tenant}`. This is already
+  wired for all `routes/tenant/*.php` — just write normal controllers + `route()` calls.
+- **Don't name a test property `$seeder`** — it collides with `RefreshDatabase::$seeder` and
+  throws "accessed before initialization" in `setUp()`. Use another name.
+- **`Event::fake()` (no args) before creating roles/permissions breaks spatie** — it swallows the
+  model events that bust spatie's permission cache, causing `PermissionDoesNotExist`. Provision
+  roles BEFORE faking, or fake only specific event classes (`Event::fake([X::class])`).
 
 ## Gotchas
 

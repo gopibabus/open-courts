@@ -7,6 +7,7 @@ namespace App\Providers;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\PermissionRegistrar;
 use Stancl\JobPipeline\JobPipeline;
@@ -106,7 +107,15 @@ class TenancyServiceProvider extends ServiceProvider
     protected function syncPermissionTeamWithTenant(): void
     {
         Event::listen(Events\TenancyInitialized::class, function (Events\TenancyInitialized $event) {
-            app(PermissionRegistrar::class)->setPermissionsTeamId($event->tenancy->tenant->getTenantKey());
+            $tenant = $event->tenancy->tenant;
+
+            // Scope spatie roles/permissions to the active club.
+            app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->getTenantKey());
+
+            // Fill the {tenant} domain route parameter for server-side URL generation
+            // (the request-time copy is removed by ForgetTenantRouteParameter so it
+            // doesn't shift positional controller arguments).
+            URL::defaults(['tenant' => $tenant->slug]);
         });
 
         Event::listen(Events\TenancyEnded::class, function () {

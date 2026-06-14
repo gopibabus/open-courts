@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domains\Facilities\Models\Court;
+use App\Http\Middleware\ForgetTenantRouteParameter;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
@@ -28,6 +29,7 @@ Route::domain('{tenant}.'.config('tenancy.central_domain'))
         'web',
         InitializeTenancyBySubdomain::class,
         PreventAccessFromCentralDomains::class,
+        ForgetTenantRouteParameter::class,
     ])
     ->group(function () {
         Route::middleware('auth')->group(function () {
@@ -46,11 +48,12 @@ Route::domain('{tenant}.'.config('tenancy.central_domain'))
                     'courts' => Court::query()->orderBy('name')->get(['id', 'name', 'surface']),
                 ]);
             })->name('tenant.dashboard');
-
-            // Per-context tenant (club) routes — each bounded context drops a file in
-            // routes/tenant/ and it is auto-loaded inside this tenant + auth group.
-            foreach ((array) glob(base_path('routes/tenant/*.php')) as $contextRoutes) {
-                require $contextRoutes;
-            }
         });
+
+        // Per-context tenant (club) routes — each bounded context drops a file in
+        // routes/tenant/. These run inside the tenant + subdomain group but NOT inside
+        // 'auth', so each file applies its own middleware (usually Route::middleware('auth')).
+        foreach ((array) glob(base_path('routes/tenant/*.php')) as $contextRoutes) {
+            require $contextRoutes;
+        }
     });

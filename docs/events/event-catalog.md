@@ -7,6 +7,18 @@ document — every feature slice adds its events here.
 | Event | Context | Emitted when | Listeners (queued) |
 | --- | --- | --- | --- |
 | `ClubRegistered` | Tenancy | A club + owner are provisioned (after commit) | `SendClubWelcomeEmail` |
+| `MemberInvited` | Membership | A member is invited by email | `SendInvitationEmail` |
+| `InvitationAccepted` | Membership | An invitee joins the club | — |
+| `RoleAssigned` | Membership | A member's club role changes | — |
+| `CourtAdded` | Facilities | A court is created | — |
+| `CourtAvailabilityChanged` | Facilities | A court's weekly windows are replaced | — |
+| `TournamentCreated` | Tournaments | A tournament is created | — |
+| `RegistrationOpened` | Tournaments | A tournament opens registration | — |
+| `EntrantRegistered` | Tournaments | An entrant registers for a category | — |
+
+> All events implement `ShouldDispatchAfterCommit`; listeners are auto-discovered from
+> `app/Domains/*/Listeners` (see `App\Providers\DomainEventServiceProvider`). Events without a
+> listener today are emitted for future projections/notifications.
 
 ## Planned events by context
 

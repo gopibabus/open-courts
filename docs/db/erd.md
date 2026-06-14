@@ -76,9 +76,67 @@ erDiagram
 > `spatie/laravel-permission` with `team_foreign_key = tenant_id` (string). See
 > [ADR-0005](../adr/0005-single-database-multitenancy.md).
 
-## Evolution note
+## Delivered feature slices
 
-The feature slices will introduce: `court_availability`, `court_blackouts`, `pricing_rules`,
-`memberships`/`invitations`, tournament `categories`, `registrations`, `draws`, `matches`,
-`scores`, billing `plans`/`subscriptions`/`invoices`, and `notifications`. As primary keys
-migrate to UUID per ADR-0001, this diagram is updated accordingly.
+```mermaid
+erDiagram
+    courts ||--o{ court_availability : "weekly windows"
+    courts ||--o{ court_blackouts : "closed periods"
+    tenants ||--o{ invitations : "pending invites"
+    tournaments ||--o{ tournament_categories : "has"
+    tournament_categories ||--o{ registrations : "entrants"
+    tournaments ||--o{ registrations : "entrants"
+
+    court_availability {
+        bigint id PK
+        string tenant_id FK
+        bigint court_id FK
+        smallint day_of_week "0=Mon..6=Sun"
+        time opens_at
+        time closes_at
+    }
+    court_blackouts {
+        bigint id PK
+        string tenant_id FK
+        bigint court_id FK "nullable = whole club"
+        datetime starts_at
+        datetime ends_at
+        string reason "nullable"
+    }
+    invitations {
+        bigint id PK
+        string tenant_id FK
+        string email
+        string role
+        string token UK
+        bigint invited_by FK "nullable"
+        datetime expires_at
+        datetime accepted_at "nullable"
+    }
+    tournament_categories {
+        bigint id PK
+        string tenant_id FK
+        bigint tournament_id FK
+        string name
+        string type "singles|doubles|mixed"
+        integer max_entrants "nullable"
+    }
+    registrations {
+        bigint id PK
+        string tenant_id FK
+        bigint tournament_id FK
+        bigint category_id FK
+        bigint user_id FK
+        bigint partner_id FK "nullable (doubles)"
+        integer seed "nullable"
+        string status "pending|confirmed|withdrawn"
+    }
+```
+
+`tournaments` also gained `format`, `registration_opens_on`, `registration_closes_on`.
+
+## Still to come
+
+Pricing rules, bookings (conflict-free), draws/matches/scores & standings, billing
+`plans`/`subscriptions`/`invoices`, notifications, platform-admin. Primary keys migrate to
+UUID per [ADR-0001](../adr/0001-postgres-but-db-neutral.md) as those slices land.
