@@ -15,6 +15,14 @@ document — every feature slice adds its events here.
 | `TournamentCreated` | Tournaments | A tournament is created | — |
 | `RegistrationOpened` | Tournaments | A tournament opens registration | — |
 | `EntrantRegistered` | Tournaments | An entrant registers for a category | — |
+| `TeamCreated` | Tournaments | A team (squad) is created | — |
+| `PlayerAddedToTeam` | Tournaments | A member is added to a team roster | — |
+| `PlayerRemovedFromTeam` | Tournaments | A member is removed from a roster | — |
+| `BookingRequested` | Booking | A booking is requested | — |
+| `BookingConfirmed` | Booking | A court booking is confirmed | `SendBookingConfirmationEmail` |
+| `BookingCancelled` | Booking | A booking is cancelled | — |
+| `ClubSuspended` | Tenancy | A platform operator suspends a club | — |
+| `ClubReactivated` | Tenancy | A suspended club is reactivated | — |
 
 > All events implement `ShouldDispatchAfterCommit`; listeners are auto-discovered from
 > `app/Domains/*/Listeners` (see `App\Providers\DomainEventServiceProvider`). Events without a

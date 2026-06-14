@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domains\Facilities\Models\Court;
+use App\Http\Middleware\EnsureClubActive;
 use App\Http\Middleware\ForgetTenantRouteParameter;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -29,6 +30,7 @@ Route::domain('{tenant}.'.config('tenancy.central_domain'))
         'web',
         InitializeTenancyBySubdomain::class,
         PreventAccessFromCentralDomains::class,
+        EnsureClubActive::class, // 403 if the club is suspended
         ForgetTenantRouteParameter::class,
     ])
     ->group(function () {

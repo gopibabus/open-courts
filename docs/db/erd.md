@@ -135,8 +135,33 @@ erDiagram
 
 `tournaments` also gained `format`, `registration_opens_on`, `registration_closes_on`.
 
+### Wave 2 additions
+
+- **`bookings`** (existing table) gained `price_cents` (integer, nullable) + `currency` (string, nullable) — money as integer minor units.
+- **`tenants`** gained `status` (string, default `active`; `active | suspended`) for platform-admin club suspension.
+- **`team_player`** roster pivot (`tenant_id`, `team_id`→teams, `user_id`→users, unique(team_id, user_id)) is now exercised by the Teams & Rosters slice.
+
+```mermaid
+erDiagram
+    courts ||--o{ bookings : "reserved for"
+    users ||--o{ bookings : "booked by"
+    teams ||--o{ team_player : roster
+    users ||--o{ team_player : "plays on"
+    bookings {
+        bigint id PK
+        string tenant_id FK
+        bigint court_id FK
+        bigint user_id FK
+        datetime starts_at
+        datetime ends_at
+        string status "reserved|cancelled|completed"
+        integer price_cents "nullable"
+        string currency "nullable"
+    }
+```
+
 ## Still to come
 
-Pricing rules, bookings (conflict-free), draws/matches/scores & standings, billing
-`plans`/`subscriptions`/`invoices`, notifications, platform-admin. Primary keys migrate to
-UUID per [ADR-0001](../adr/0001-postgres-but-db-neutral.md) as those slices land.
+Pricing rules, tournament draws/matches/scores & standings, billing
+`plans`/`subscriptions`/`invoices`, realtime notifications. Primary keys migrate to UUID per
+[ADR-0001](../adr/0001-postgres-but-db-neutral.md) as those slices land.
