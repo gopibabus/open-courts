@@ -51,12 +51,34 @@ Membership, Facilities, Booking, Tournaments, Billing, Notifications). Each cont
 ## Commands
 
 ```bash
-php artisan test                          # full suite (SQLite in-memory)
-php artisan test --filter=MultiTenancyTest
-php artisan migrate:fresh --seed          # host = SQLite
-docker compose up --build                 # container = MySQL
+php artisan test                          # Pest suite (SQLite in-memory)
+npx playwright test                       # browser E2E (auto-starts `artisan serve` on lvh.me:8000)
+php artisan migrate:fresh --seed          # runtime DB = Postgres (start it: docker compose up -d tennis-postgres)
+docker compose up --build                 # full stack (app=Apache, db=Postgres, redis, mailpit)
 npm run build                             # required before Inertia HTTP tests render HTML
 ```
+
+App runs at **http://lvh.me:8000** (host dev) / **:8080** (Docker); clubs at `<slug>.lvh.me`.
+
+## Vertical-slice pattern (follow for every feature)
+
+DTO → Action (`app/Domains/<Ctx>/Actions`) → domain Event (after-commit) → queued Listener →
+thin Controller + FormRequest → shadcn UI page → **Pest feature test + Playwright E2E** → docs
+(`docs/features/<name>.md` with a Mermaid flow) + event-catalog row. Register event→listener in
+`app/Providers/DomainEventServiceProvider.php`. Reference slice: **club onboarding**.
+
+## More gotchas (learned the hard way)
+
+- **Local subdomains use `lvh.me`, not `localhost`.** `*.localhost` can't share the session
+  cookie across subdomains; `*.lvh.me` resolves to 127.0.0.1 and shares cookies. Set
+  `CENTRAL_DOMAIN` / `SESSION_DOMAIN` / `APP_URL` to lvh.me locally.
+- **Tests pin to `localhost`** via `phpunit.xml` (`APP_URL=http://localhost`,
+  `CENTRAL_DOMAIN=localhost`) so domain-constrained central routes resolve under relative-path
+  requests. Keep those two in sync if you change central routing.
+- **Cross-subdomain redirects must use `Inertia::location()`**, not `redirect()->away()` —
+  Inertia XHR can't follow a cross-origin 302.
+- **`tenancy.asset_helper_tenancy` is `false`** — otherwise `asset()` (and thus Vite JS/CSS) is
+  rewritten per-tenant and the SPA renders blank on club subdomains.
 
 ## Gotchas
 
