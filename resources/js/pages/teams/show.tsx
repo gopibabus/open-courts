@@ -102,19 +102,12 @@ export default function ShowTeam({ team, roster, availableMembers, canManage }: 
         <ClubLayout title="Team">
             <div className="mx-auto max-w-4xl space-y-8">
                 <header className="space-y-3">
-                    {team.tournament ? (
+                    {team.tournament && (
                         <Link
                             href={route('tournaments.show', team.tournament.id)}
                             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
                         >
                             <ArrowLeft className="size-3.5" /> {team.tournament.name}
-                        </Link>
-                    ) : (
-                        <Link
-                            href={route('teams.index')}
-                            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
-                        >
-                            <ArrowLeft className="size-3.5" /> Teams
                         </Link>
                     )}
                     <div className="flex items-start justify-between gap-4">

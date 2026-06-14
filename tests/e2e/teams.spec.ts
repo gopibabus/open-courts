@@ -44,8 +44,8 @@ test.describe('Teams', () => {
         await expect(page.getByRole('heading', { name: teamName })).toBeVisible();
         await expect(page.getByText(tournamentName).first()).toBeVisible();
 
-        // --- It appears in the club's teams list (with its tournament) ---
-        await page.goto(`${origin}/teams`);
+        // --- And appears under its tournament ---
+        await page.getByRole('link', { name: tournamentName }).click();
         await expect(page.getByText(teamName)).toBeVisible();
     });
 });

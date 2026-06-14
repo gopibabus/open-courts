@@ -52,6 +52,12 @@ class HandleInertiaRequests extends Middleware
                 'user' => fn () => ($user = $request->user())
                     ? [...$user->toArray(), 'is_platform_admin' => (bool) $user->is_platform_admin]
                     : null,
+                // Every club this user belongs to — powers the sidebar club switcher
+                // (a member can belong to multiple clubs).
+                'clubs' => fn () => ($u = $request->user())
+                    ? $u->tenants()->orderBy('name')->get(['tenants.id', 'tenants.name', 'tenants.slug'])
+                        ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'slug' => $t->slug])->values()
+                    : [],
             ],
             // The active club, shared on every tenant-domain request so the club shell
             // (sidebar/topbar) always has the club name without each controller passing it.

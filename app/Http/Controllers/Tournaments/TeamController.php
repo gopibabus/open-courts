@@ -31,26 +31,6 @@ use Inertia\Response;
  */
 class TeamController extends Controller
 {
-    public function index(): Response
-    {
-        $teams = Team::query()
-            ->withCount('players')
-            ->with('tournament:id,name')
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Team $team) => [
-                'id' => $team->id,
-                'name' => $team->name,
-                'players_count' => $team->players_count,
-                'tournament' => $team->tournament ? ['id' => $team->tournament->id, 'name' => $team->tournament->name] : null,
-            ]);
-
-        return Inertia::render('teams/index', [
-            'teams' => $teams,
-            'canManage' => $this->canManage(),
-        ]);
-    }
-
     public function store(TeamsStoreTeamRequest $request, Tournament $tournament, CreateTeam $createTeam): RedirectResponse
     {
         $team = $createTeam->handle(new CreateTeamData(
@@ -95,10 +75,11 @@ class TeamController extends Controller
 
     public function destroy(Team $team): RedirectResponse
     {
+        $tournamentId = $team->tournament_id;
         $team->delete();
 
         return redirect()
-            ->route('teams.index')
+            ->route('tournaments.show', $tournamentId)
             ->with('status', 'Team deleted.');
     }
 

@@ -26,9 +26,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware('auth')->group(function () {
-    // Read — any authenticated club member. Teams are created under a tournament; this
-    // page lists them (grouped by tournament) with a link to each team's roster.
-    Route::get('teams', [TeamController::class, 'index'])->name('teams.index');
+    // Read — any authenticated club member. Teams live under a tournament, so there is no
+    // standalone teams index; a team's roster page is reached from its tournament.
     Route::get('teams/{team}', [TeamController::class, 'show'])->name('teams.show');
 
     // Write — requires the club-scoped `team.manage` permission. Team creation lives under

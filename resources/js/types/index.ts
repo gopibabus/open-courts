@@ -2,6 +2,8 @@ import { LucideIcon } from 'lucide-react';
 
 export interface Auth {
     user: User;
+    /** Every club the signed-in user belongs to (for the sidebar club switcher). */
+    clubs?: Club[];
 }
 
 export interface BreadcrumbItem {
