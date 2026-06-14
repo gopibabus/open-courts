@@ -8,18 +8,25 @@ services:
         env_file:
             - docker/.docker.env
         environment:
-            # These override whatever is in the bind-mounted .env (Laravel's immutable
-            # dotenv loader won't clobber real env vars), so the container talks to the
-            # MySQL service while the host can keep using SQLite for quick artisan work.
+            # Override the bind-mounted .env so the container talks to the compose
+            # services by name (Laravel's immutable dotenv won't clobber real env vars).
             CONTAINER_ROLE: app
-            DB_CONNECTION: mysql
-            DB_HOST: tennis-mysql
-            DB_PORT: 3306
+            DB_CONNECTION: pgsql
+            DB_HOST: tennis-postgres
+            DB_PORT: 5432
             DB_DATABASE: ${DB_DATABASE:-open_tennis}
             DB_USERNAME: ${DB_USERNAME:-open_tennis}
             DB_PASSWORD: ${DB_PASSWORD:-secret}
+            REDIS_HOST: tennis-redis
+            CACHE_STORE: redis
+            QUEUE_CONNECTION: redis
+            SESSION_DRIVER: redis
+            MAIL_MAILER: smtp
+            MAIL_HOST: tennis-mailpit
+            MAIL_PORT: 1025
         depends_on:
-            - tennis-mysql
+            - tennis-postgres
+            - tennis-redis
         volumes:
             - .:/var/www/html
         networks:
@@ -27,26 +34,48 @@ services:
         ports:
             - "${APP_HOST_PORT:-8080}:80"
 
-    tennis-mysql:
-        image: mysql:8.4
-        container_name: open-tennis-mysql
+    tennis-postgres:
+        image: postgres:17
+        container_name: open-tennis-postgres
         restart: always
         volumes:
-            - tennis_sql_data:/var/lib/mysql
+            - tennis_pg_data:/var/lib/postgresql/data
         networks:
             - tennis-network
         environment:
-            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
-            MYSQL_DATABASE: ${DB_DATABASE:-open_tennis}
-            MYSQL_USER: ${DB_USERNAME:-open_tennis}
-            MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+            POSTGRES_DB: ${DB_DATABASE:-open_tennis}
+            POSTGRES_USER: ${DB_USERNAME:-open_tennis}
+            POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
         ports:
-            # Published on 3307 by default to avoid clashing with a host MySQL on 3306.
-            - "${DB_HOST_PORT:-3307}:3306"
+            - "${DB_HOST_PORT:-5432}:5432"
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-open_tennis} -d ${DB_DATABASE:-open_tennis}"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
+    tennis-redis:
+        image: redis:7-alpine
+        container_name: open-tennis-redis
+        restart: always
+        networks:
+            - tennis-network
+        ports:
+            - "${REDIS_HOST_PORT:-6379}:6379"
+
+    tennis-mailpit:
+        image: axllent/mailpit:latest
+        container_name: open-tennis-mailpit
+        restart: always
+        networks:
+            - tennis-network
+        ports:
+            - "${MAILPIT_HTTP_PORT:-8025}:8025" # web UI
+            - "${MAILPIT_SMTP_PORT:-1025}:1025" # SMTP
 
 networks:
     tennis-network:
         driver: bridge
 
 volumes:
-    tennis_sql_data:
+    tennis_pg_data:

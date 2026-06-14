@@ -13,7 +13,7 @@ ENV COMPOSER_PROCESS_TIMEOUT=2000
 
 ###############################################################################
 # system packages + PHP extensions
-#   pdo_mysql/mysqli : MySQL connectivity
+#   pdo_pgsql        : PostgreSQL connectivity (runtime database)
 #   intl/mbstring    : Laravel framework requirements
 #   zip              : composer package extraction
 #   gd               : image handling (court/club photos, later)
@@ -33,14 +33,14 @@ RUN apt-get -yqq update \
         libonig-dev \
         libpng-dev \
         libwebp-dev \
+        libpq-dev \
         curl \
         git \
     && docker-php-ext-configure intl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install \
         pdo \
-        pdo_mysql \
-        mysqli \
+        pdo_pgsql \
         pcntl \
         intl \
         zip \

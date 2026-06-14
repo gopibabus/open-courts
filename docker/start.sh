@@ -4,8 +4,8 @@ set -e
 
 cd /var/www/html
 
-DB_HOST="${DB_HOST:-tennis-mysql}"
-DB_PORT="${DB_PORT:-3306}"
+DB_HOST="${DB_HOST:-tennis-postgres}"
+DB_PORT="${DB_PORT:-5432}"
 
 ###############################################################################
 # 1. Wait for the database to accept connections.
