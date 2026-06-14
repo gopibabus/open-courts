@@ -23,6 +23,7 @@ document — every feature slice adds its events here.
 | `BookingRequested` | Booking | A booking is requested | — |
 | `BookingConfirmed` | Booking | A court booking is confirmed | `SendBookingConfirmationEmail` |
 | `BookingCancelled` | Booking | A booking is cancelled | — |
+| `SupportRequestSubmitted` | Support | A member files a help-desk request (after commit) | `SendSupportRequestNotification` |
 | `ClubSuspended` | Tenancy | A platform operator suspends a club | — |
 | `ClubReactivated` | Tenancy | A suspended club is reactivated | — |
 

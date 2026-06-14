@@ -445,7 +445,7 @@ export default function ShowTournament({
 }: ShowTournamentProps) {
     return (
         <ClubLayout title="Tournament">
-            <div className="mx-auto max-w-4xl space-y-8">
+            <div className="space-y-8">
                 <header className="space-y-3">
                     <Link
                         href={route('tournaments.index')}

@@ -190,7 +190,7 @@ export default function BookingIndex({ courts, courtBookings, myBookings }: Book
 
     return (
         <ClubLayout title="Bookings">
-            <div className="mx-auto max-w-4xl space-y-8">
+            <div className="space-y-8">
                 <header className="space-y-1">
                     <p className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Booking</p>
                     <h1 className="text-2xl font-semibold tracking-tight">Book a court</h1>

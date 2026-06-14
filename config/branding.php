@@ -18,6 +18,9 @@ declare(strict_types=1);
 return [
     'name' => env('APP_NAME', 'Open Courts'),
 
+    // Where in-app Help requests are delivered (the support inbox).
+    'support_email' => env('SUPPORT_EMAIL', 'support@opencourts.test'),
+
     'tagline' => 'Book a court. Round up the neighbours. Play.',
 
     'description' => 'The community court-booking platform — reserve courts, run tournaments, and manage your teams and members, all in one place.',

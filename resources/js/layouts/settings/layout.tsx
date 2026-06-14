@@ -2,8 +2,8 @@ import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
+import { type NavItem, type SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
 
 const sidebarNavItems: NavItem[] = [
     {
@@ -25,9 +25,12 @@ const sidebarNavItems: NavItem[] = [
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
     const currentPath = window.location.pathname;
+    // On a club subdomain these pages render inside ClubLayout, whose <main> already
+    // pads; only add our own padding on the central app (AppLayout doesn't).
+    const { club } = usePage<SharedData>().props;
 
     return (
-        <div className="px-4 py-6">
+        <div className={cn(!club && 'px-4 py-6')}>
             <Heading title="Settings" description="Manage your profile and account settings" />
 
             <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">

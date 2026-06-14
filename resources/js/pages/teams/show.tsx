@@ -100,7 +100,7 @@ export default function ShowTeam({ team, roster, availableMembers, canManage }: 
 
     return (
         <ClubLayout title="Team">
-            <div className="mx-auto max-w-4xl space-y-8">
+            <div className="space-y-8">
                 <header className="space-y-3">
                     {team.tournament && (
                         <Link

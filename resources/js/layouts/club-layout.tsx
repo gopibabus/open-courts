@@ -7,7 +7,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useInitials } from '@/hooks/use-initials';
 import { type SharedData } from '@/types';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { ChevronDown, CircleHelp, Search } from 'lucide-react';
 
 /**
@@ -37,14 +37,12 @@ export default function ClubLayout({ title, children }: { title?: string; childr
 
                     <div className="ml-auto flex items-center gap-2">
                         <ThemeToggle />
-                        <a
-                            href="https://laravel.com/docs"
-                            target="_blank"
-                            rel="noreferrer"
+                        <Link
+                            href={route('help.index')}
                             className="text-muted-foreground hover:text-foreground hidden items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors sm:flex"
                         >
                             <CircleHelp className="size-4" /> Help
-                        </a>
+                        </Link>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <button className="hover:bg-accent focus-visible:ring-ring flex items-center gap-2 rounded-md px-1.5 py-1 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none">

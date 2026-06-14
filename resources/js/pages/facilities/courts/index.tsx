@@ -365,7 +365,7 @@ export default function CourtsIndex({ courts, canManage }: CourtsIndexProps) {
 
     return (
         <ClubLayout title="Courts">
-            <div className="mx-auto max-w-4xl space-y-8">
+            <div className="space-y-8">
                 <header className="flex items-end justify-between">
                     <div className="space-y-1">
                         <p className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Facilities</p>

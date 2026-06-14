@@ -63,7 +63,7 @@ export default function MembersIndex({ members, pendingInvitations, roles, can }
 
     return (
         <ClubLayout title="Members">
-            <div className="mx-auto max-w-3xl space-y-8">
+            <div className="space-y-8">
                 <header className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
                         <p className="text-muted-foreground text-sm font-medium">Club workspace</p>

@@ -43,7 +43,7 @@ function dateRange(from: string | null, to: string | null): string {
 export default function TournamentsIndex({ tournaments, canManage }: TournamentsIndexProps) {
     return (
         <ClubLayout title="Tournaments">
-            <div className="mx-auto max-w-4xl space-y-8">
+            <div className="space-y-8">
                 <header className="flex items-end justify-between">
                     <div className="space-y-1">
                         <p className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Club</p>
