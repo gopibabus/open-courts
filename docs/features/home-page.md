@@ -1,54 +1,60 @@
-# Marketing home page
+# Home page
 
 The public landing page served at `/` on the **central domain** (route name `home`,
-rendered by `routes/web.php` → Inertia `welcome`). It is the front door for prospective
-club operators — it sells what OpenTennis delivers and routes them to sign up.
+rendered by `routes/web.php` → Inertia `welcome`). It's the front door for a community
+thinking about putting their courts online.
 
 - **Component:** [`resources/js/pages/welcome.tsx`](../../resources/js/pages/welcome.tsx)
 - **Guard test:** [`tests/Feature/HomePageTest.php`](../../tests/Feature/HomePageTest.php) — renders for guests, resolves to the `welcome` component, never redirects to login.
 
-## Design
+## Voice
 
-Aesthetic is the project design system (see [`docs/ui/design-system.md`](../ui/design-system.md)),
-inspired by **vask.dev**'s developer-documentation look:
+Warm and human — written for **the people in a community who just want to get on court**
+(residents, club members, the neighbour who organises the Saturday social), not for operators
+or engineers. No jargon: "book a court", "round up the neighbours", "house rules". Tone reference
+is yourcourts.com — friendly, simple, reassuring.
+
+## Look
+
+Uses the project design system (see [`docs/ui/design-system.md`](../ui/design-system.md)):
 
 - **Monochrome only**, via semantic tokens (`bg-background`, `text-foreground`,
-  `text-muted-foreground`, `bg-card`, `bg-muted`, `bg-accent`, `border-border`). Color is
-  reserved for state (focus `ring-ring`, blackout cell `ring-destructive`, suspended badge).
-- **JetBrains Mono** everywhere. The dot-matrix **Doto** face (`.text-display`) is used
-  **only** for numerals and the `OPEN·TENNIS` wordmark (court numbers, times, scores, counts,
-  the stats band) — never for headings, body, nav, or buttons.
-- **`FIG.0x` / `FEAT.0x`** monospace documentation eyebrows label each section, with hairline
-  `border-border` dividers carrying the structure.
-- Light / dark / system via the `useAppearance()` segmented toggle (header + footer).
+  `text-muted-foreground`, `bg-card`, `bg-muted`, `bg-accent`, `border-border`). Colour is
+  reserved for state (focus `ring-ring`, the closed-for-upkeep cell `ring-destructive`).
+- **JetBrains Mono** throughout. The dot-matrix **Doto** face (`.text-display`) is used **only**
+  for numerals and the `OPEN·TENNIS` wordmark (court numbers, times, the `6—4 7—5` score, the
+  big "why neighbours love it" figures).
+- **Light / dark / system** via a segmented toggle of **sun / moon / monitor icons** (each button
+  keeps an `aria-label` since the icon carries no text); reused in the header and footer.
 
-## Self-imposed rules (enforced by review)
+## What's shown (and the rules behind it)
 
-- **Every capability is shown with a buildable, div-only mock — no screenshots.** Court board,
-  dot-matrix scoreboard, tournament draw card, roster, **roles matrix**, platform console, and
-  faux subdomain address bars are all CSS + tokens, so they stay in sync with the theme and
-  render in both light and dark for free.
-- **The roles matrix mirrors the real seeder** (`RolePermissionSeeder::roleMatrix()`): Owner/
-  Club-admin = all seven permissions; Coach = `court.book` + `tournament.manage` + `team.manage`;
-  Member = `court.book`. Keep them in sync if the matrix changes.
-- **Honesty:** no fabricated pricing tiers, customer logos, or invented uptime/usage numbers.
-  Stat figures (`00` double-bookings, `24/7`, `1` subdomain, `100%` attributed) are properties
-  of how the app is built, not marketing averages.
-- **Central routes only.** CTAs use `register-club.create`, `login`, `register`, `ui.gallery`,
-  `home`. Tenant routes (bookings/tournaments/teams/members) **do not exist on the central
-  domain** and would throw in Ziggy — in-page jumps use `<a href="#id">`, route targets use
+- **Every feature is a buildable, screenshot-free mock** made of divs + tokens — a live court
+  board, a dot-matrix scoreboard, an event sign-up card, a team roster, a roles grid, faux
+  subdomain address bars, and a "house rules" card. They stay in sync with the theme and render
+  in both light and dark for free.
+- The **roles grid mirrors the real seeder** ([`RolePermissionSeeder::roleMatrix()`](../../database/seeders/RolePermissionSeeder.php)),
+  shown with friendly ability names: **Organiser** can do everything (club-admin); **Coach** can
+  Book a court / Run events / Make teams (`court.book` + `tournament.manage` + `team.manage`);
+  **Member** can Book a court (`court.book`). Keep the grants in sync if the matrix changes.
+- **Honest:** no fabricated pricing, customer logos, or invented metrics. The "why neighbours
+  love it" figures (`30s` to book, `0` double-bookings, `24/7`, `1 tap`) describe how it feels to
+  use, not made-up averages.
+- **Central routes only.** CTAs point at `register-club.create`, `login`, `register`,
+  `ui.gallery`, `home`. Tenant routes (bookings/tournaments/teams/members) don't exist on the
+  central domain and would throw in Ziggy — in-page jumps use `<a href="#id">`, route targets use
   Inertia `<Link>`.
 
 ## Section order
 
-nav → hero (+ live court board) → `FIG.01` how-it-works → `FEAT.01` booking → `FEAT.02`
-tournaments → `FEAT.03/04` teams & roles → `FEAT.05` subdomains & isolation → `FIG.02`
-comparison table → `FIG.03` stats band → `FEAT.06` platform & engineering → `FIG.04` FAQ
-(native `<details>`) → inverted CTA band → multi-column footer.
+header → hero (+ live court board) → How it works → Book a court → Play & compete (event card +
+scoreboard) → Your people (teams + roles) → Your club online (subdomains) → The old way vs the
+OpenTennis way (comparison) → Why neighbours love it (stats) → For whoever runs it (house rules)
+→ Good questions (FAQ, native `<details>`) → closing call-to-action → footer.
 
 ## Accessibility
 
-`<details>`/`<summary>` FAQ (keyboard-native), theme toggle exposes `aria-pressed`, the roles
-matrix icons carry `aria-label` ("granted" / "not granted") so grant/deny isn't color-only, the
-decorative court-board grid has a descriptive `aria-label`, and wide tables sit in
-`overflow-x-auto` wrappers for mobile.
+Native `<details>`/`<summary>` FAQ, theme-toggle buttons expose `aria-label` + `aria-pressed`
+(icon is `aria-hidden`), the roles grid icons carry `aria-label` ("yes" / "no") so it isn't
+colour-only, the decorative court board has a descriptive `aria-label`, and the wide tables sit
+in `overflow-x-auto` wrappers for small screens.
