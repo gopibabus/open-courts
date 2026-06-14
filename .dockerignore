@@ -1,0 +1,13 @@
+.git
+.github
+node_modules
+vendor
+.env
+public/build
+public/hot
+storage/*.key
+database/database.sqlite
+tests
+playwright-report
+test-results
+README.md
