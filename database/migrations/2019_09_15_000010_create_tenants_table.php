@@ -16,7 +16,7 @@ class CreateTenantsTable extends Migration
         Schema::create('tenants', function (Blueprint $table) {
             $table->string('id')->primary();
 
-            // Tennis-club identity. These are "custom columns" (see App\Models\Tenant)
+            // Tennis-club identity. These are "custom columns" (see App\Domains\Tenancy\Models\Tenant)
             // stored as real columns; everything else falls into the `data` JSON blob.
             $table->string('name');
             $table->string('slug')->unique();

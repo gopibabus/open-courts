@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Models\Tenant;
+use App\Domains\Tenancy\Models\Tenant;
 use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;

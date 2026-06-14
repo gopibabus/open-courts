@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Models;
+namespace App\Domains\Booking\Models;
 
+use App\Domains\Facilities\Models\Court;
+use App\Domains\Identity\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Stancl\Tenancy\Database\Concerns\BelongsToTenant;

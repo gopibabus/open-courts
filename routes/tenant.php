@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Models\Court;
+use App\Domains\Facilities\Models\Court;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
@@ -32,7 +32,7 @@ Route::domain('{tenant}.'.config('tenancy.central_domain'))
     ->group(function () {
         Route::middleware('auth')->group(function () {
             Route::get('/', function () {
-                $club = tenant(); // App\Models\Tenant — the resolved club
+                $club = tenant(); // App\Domains\Tenancy\Models\Tenant — the resolved club
 
                 return Inertia::render('tenant/dashboard', [
                     'club' => [

@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Models;
+namespace App\Domains\Tournaments\Models;
 
+use App\Domains\Identity\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -24,8 +25,7 @@ class Team extends Model
     }
 
     /**
-     * Players on this team. Remember to pass tenant_id when attaching (see the
-     * team_player migration note) since attach() bypasses model events.
+     * Players on this team. Pass tenant_id when attaching (attach() bypasses model events).
      */
     public function players(): BelongsToMany
     {

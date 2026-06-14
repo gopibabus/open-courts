@@ -2,29 +2,30 @@
 
 declare(strict_types=1);
 
-namespace App\Models;
+namespace App\Domains\Tournaments\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
 
-class Court extends Model
+class Tournament extends Model
 {
     use BelongsToTenant;
 
-    /** tenant_id is auto-populated by the BelongsToTenant trait, so it is omitted here. */
     protected $fillable = [
         'name',
-        'surface',
-        'is_active',
+        'starts_on',
+        'ends_on',
+        'status',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'starts_on' => 'date',
+        'ends_on' => 'date',
     ];
 
-    public function bookings(): HasMany
+    public function teams(): HasMany
     {
-        return $this->hasMany(Booking::class);
+        return $this->hasMany(Team::class);
     }
 }

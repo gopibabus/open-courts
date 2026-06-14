@@ -34,13 +34,19 @@ Laravel 12 + Inertia/React (TS). Status: skeleton — domain models are intentio
   (Laravel keys routes by domain+URI).
 - Local URLs: `http://localhost:8080` (central), `http://<club>.localhost:8080` (club).
 
-## Where things live
+## Code layout (DDD — see ADR-0002)
 
+Code is organised by **bounded context** under `app/Domains/<Context>/` (Identity, Tenancy,
+Membership, Facilities, Booking, Tournaments, Billing, Notifications). Each context owns its
+`Models/`, `Actions/`, `Data/`, `Events/`, `Listeners/`, `Policies/`, `Exceptions/`.
+
+- Models live under `app/Domains/<Context>/Models/` — e.g. `App\Domains\Tenancy\Models\Tenant`,
+  `App\Domains\Identity\Models\User`, `App\Domains\Facilities\Models\Court`. There is **no**
+  `app/Models/`. `User`'s factory link is via an explicit `newFactory()` + `UserFactory::$model`.
+- Controllers stay thin in `app/Http`; business logic goes in a context **Action**.
 - Role → permission matrix: `database/seeders/RolePermissionSeeder::roleMatrix()` (user owns this).
 - Demo data: `database/seeders/DemoSeeder.php`.
-- Tenant model + custom columns (`id, name, slug`): `app/Models/Tenant.php`.
-- Domain stubs: `Court`, `Booking`, `Tournament`, `Team` (all `BelongsToTenant`). The domain
-  `teams` table is unrelated to spatie's "teams" feature (which has no table).
+- The domain `teams` table (tournament squads) is unrelated to spatie's "teams" feature.
 
 ## Commands
 

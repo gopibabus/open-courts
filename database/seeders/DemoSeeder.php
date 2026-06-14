@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Models\Court;
-use App\Models\Tenant;
-use App\Models\User;
+use App\Domains\Facilities\Models\Court;
+use App\Domains\Identity\Models\User;
+use App\Domains\Tenancy\Models\Tenant;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\PermissionRegistrar;
