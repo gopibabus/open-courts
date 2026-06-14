@@ -29,7 +29,7 @@ final class InvitationMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: "You're invited to join {$this->club->name} on OpenTennis");
+        return new Envelope(subject: "You're invited to join {$this->club->name} on ".config('app.name'));
     }
 
     public function content(): Content

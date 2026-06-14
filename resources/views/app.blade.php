@@ -4,7 +4,10 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <title inertia>{{ config('app.name', 'Open Courts') }}</title>
+
+        <link rel="icon" type="image/x-icon" href="/{{ config('branding.favicon') }}" sizes="any">
+        <link rel="apple-touch-icon" href="/{{ config('branding.logo_dark') }}">
 
         {{-- JetBrains Mono = system typeface; Doto = dot-matrix display accents (Nothing-style). --}}
         <link rel="preconnect" href="https://fonts.bunny.net">

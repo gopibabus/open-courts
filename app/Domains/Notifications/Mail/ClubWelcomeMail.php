@@ -19,7 +19,7 @@ final class ClubWelcomeMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: "Welcome to OpenTennis — {$this->club->name}");
+        return new Envelope(subject: 'Welcome to '.config('app.name')." — {$this->club->name}");
     }
 
     public function content(): Content

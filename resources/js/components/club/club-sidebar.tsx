@@ -1,3 +1,4 @@
+import { Logo } from '@/components/logo';
 import {
     Sidebar,
     SidebarContent,
@@ -42,10 +43,7 @@ export function ClubSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
                             <Link href={route('tenant.dashboard')}>
-                                <span className="bg-primary text-primary-foreground flex aspect-square size-8 items-center justify-center rounded-md">
-                                    <span className="text-display text-sm leading-none">O</span>
-                                </span>
-                                <span className="text-display text-base leading-none">OpenTennis</span>
+                                <Logo className="h-8 w-auto" />
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

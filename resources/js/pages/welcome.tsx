@@ -2,6 +2,7 @@ import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { CalendarClock, Check, ChevronDown, Lock, Minus, Monitor, Moon, Sun } from 'lucide-react';
 
+import { Logo } from '@/components/logo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { type Appearance, useAppearance } from '@/hooks/use-appearance';
 
 /*
- * OpenTennis home page — rendered at route('home') on the central domain.
+ * Open Courts home page — rendered at route('home') on the central domain.
  * Voice: warm and human, written for the people in a community who just want to
  * get on court — not for operators or engineers. Monochrome, JetBrains Mono, with
  * the Doto dot-matrix face (.text-display) used only for numerals and the wordmark.
@@ -273,14 +274,14 @@ export default function Welcome() {
 
     return (
         <>
-            <Head title="OpenTennis — book a court, round up the neighbours, play" />
+            <Head title="Book a court, round up the neighbours, play" />
 
             <div className="bg-background text-foreground min-h-screen scroll-smooth">
                 {/* Sticky header */}
                 <header className="border-border bg-background/80 sticky top-0 z-50 border-b backdrop-blur">
                     <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-                        <Link href={route('home')} className="text-display text-xl">
-                            OPEN·TENNIS
+                        <Link href={route('home')} className="flex items-center" aria-label="Open Courts home">
+                            <Logo className="h-9 w-auto" />
                         </Link>
                         <nav className="text-muted-foreground hidden items-center gap-6 text-sm md:flex">
                             {NAV.map((n) => (
@@ -318,7 +319,7 @@ export default function Welcome() {
                                 Book a court. Round up the neighbours. Play.
                             </h1>
                             <p className="text-muted-foreground max-w-prose text-base md:text-lg">
-                                OpenTennis gives your community one easy place to reserve courts, join games and socials, and keep everyone in the
+                                Open Courts gives your community one easy place to reserve courts, join games and socials, and keep everyone in the
                                 loop — so getting on court is the simple part of your day.
                             </p>
                             <div className="flex flex-wrap gap-3">
@@ -592,7 +593,7 @@ export default function Welcome() {
                 </Section>
 
                 {/* The old way vs the new */}
-                <Section id="compare" label="The old way vs the OpenTennis way">
+                <Section id="compare" label="The old way vs the Open Courts way">
                     <div className="mx-auto max-w-4xl">
                         <div className="max-w-prose space-y-3">
                             <h2 className="text-3xl font-semibold tracking-tight">Less faff. More tennis.</h2>
@@ -605,7 +606,7 @@ export default function Welcome() {
                                         <th className="text-muted-foreground py-3 pr-4 font-medium">Group chat & a sheet on the wall</th>
                                         <th className="bg-muted px-4 py-3 font-medium">
                                             <span className="inline-flex items-center gap-2">
-                                                OpenTennis <Badge variant="outline">this</Badge>
+                                                Open Courts <Badge variant="outline">this</Badge>
                                             </span>
                                         </th>
                                     </tr>
@@ -656,7 +657,7 @@ export default function Welcome() {
                             <h2 className="text-3xl font-semibold tracking-tight">Easy to run. Fair for everyone.</h2>
                             <p className="text-muted-foreground">
                                 Whoever looks after your club sets a few simple house rules — how far ahead people can book, peak-hour limits,
-                                members-only times — and OpenTennis keeps everything fair on its own. No favourites, no chasing, no spreadsheet on a
+                                members-only times — and Open Courts keeps everything fair on its own. No favourites, no chasing, no spreadsheet on a
                                 Sunday night.
                             </p>
                             <div className="divide-border divide-y">
@@ -706,7 +707,7 @@ export default function Welcome() {
                 {/* CTA band */}
                 <section className="bg-foreground text-background">
                     <div className="mx-auto max-w-4xl px-6 py-24 text-center">
-                        <p className="text-display text-sm">OPEN·TENNIS</p>
+                        <Logo theme="dark" className="mx-auto h-9 w-auto" />
                         <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Bring your community’s courts to life.</h2>
                         <p className="text-background/70 mx-auto mt-4 max-w-prose">
                             Set your club up in minutes and give your neighbours the easiest way yet to book, play and get together.
@@ -735,7 +736,7 @@ export default function Welcome() {
                     <div className="mx-auto max-w-6xl px-6 py-16">
                         <div className="grid grid-cols-2 gap-8 text-sm md:grid-cols-4">
                             <div className="col-span-2 space-y-3 md:col-span-1">
-                                <div className="text-display text-lg">OPEN·TENNIS</div>
+                                <Logo className="h-8 w-auto" />
                                 <p className="text-muted-foreground max-w-xs text-xs">
                                     The easiest way for your community to book courts, play and get together.
                                 </p>
@@ -769,7 +770,7 @@ export default function Welcome() {
                         </div>
                         <Separator className="my-8" />
                         <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2 text-xs">
-                            <span>OpenTennis • 2026 — courts, games and good company, sorted.</span>
+                            <span>Open Courts • 2026 — courts, games and good company, sorted.</span>
                             <span>
                                 Crafted by <span className="text-foreground font-medium">GH Global Systems</span>
                             </span>
