@@ -13,6 +13,9 @@ Route::domain(config('tenancy.central_domain'))->group(function () {
         return Inertia::render('welcome');
     })->name('home');
 
+    // Design-system gallery (living reference for the monochrome / dot-matrix system).
+    Route::get('ui', fn () => Inertia::render('ui-gallery'))->name('ui.gallery');
+
     Route::middleware(['auth'])->group(function () {
         Route::get('dashboard', function () {
             return Inertia::render('dashboard');
