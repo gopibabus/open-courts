@@ -87,6 +87,8 @@ class TournamentController extends Controller
             'categories' => fn ($q) => $q->orderBy('name'),
             'categories.registrations.user:id,name',
             'categories.registrations.partner:id,name',
+            'teams' => fn ($q) => $q->withCount('players')->orderBy('name'),
+            'management:id,name',
         ]);
 
         return Inertia::render('tournaments/show', [
@@ -113,8 +115,29 @@ class TournamentController extends Controller
                     'status' => $r->status->value,
                 ])->values(),
             ])->values(),
+            // Tournament squads (teams). Each member may be on only one team per tournament.
+            'teams' => $tournament->teams->map(fn ($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'players_count' => $t->players_count,
+            ])->values(),
+            // The EC (management) — club members who run this tournament.
+            'management' => $tournament->management->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+            ])->values(),
+            // Club members not yet on the EC — the "add to management" picker.
+            'availableManagers' => tenant()->users()
+                ->whereNotIn('users.id', $tournament->management->pluck('id'))
+                ->orderBy('name')
+                ->get(['users.id', 'users.name'])
+                ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
+                ->values(),
             'categoryTypes' => $this->categoryTypeOptions(),
             'canManage' => $this->canManage(),
+            // Creating teams is gated by team.manage (coach + club-admin), separate from
+            // tournament.manage which gates categories/registration/EC.
+            'canManageTeams' => request()->user()?->can('team.manage') ?? false,
         ]);
     }
 

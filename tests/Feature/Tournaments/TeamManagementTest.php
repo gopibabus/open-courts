@@ -14,6 +14,7 @@ use App\Domains\Tournaments\Events\PlayerRemovedFromTeam;
 use App\Domains\Tournaments\Events\TeamCreated;
 use App\Domains\Tournaments\Exceptions\RosterException;
 use App\Domains\Tournaments\Models\Team;
+use App\Domains\Tournaments\Models\Tournament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Spatie\Permission\PermissionRegistrar;
@@ -23,105 +24,107 @@ class TeamManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** Provision a club (tenant) with its roles, and return it. */
     private function makeClub(string $slug): Tenant
     {
-        $club = Tenant::create([
-            'id' => $slug,
-            'name' => ucfirst($slug).' Club',
-            'slug' => $slug,
-        ]);
+        $club = Tenant::create(['id' => $slug, 'name' => ucfirst($slug).' Club', 'slug' => $slug]);
         $club->domains()->create(['domain' => $slug]);
-
         app(ProvisionClubRoles::class)->handle($club);
 
         return $club;
     }
 
-    /** Create a user, make them a member of the club, and assign a club-scoped role. */
     private function makeMember(Tenant $club, string $role): User
     {
         $user = User::factory()->create();
         $club->users()->attach($user->id);
-
         app(PermissionRegistrar::class)->setPermissionsTeamId($club->getTenantKey());
         $user->assignRole($role);
 
         return $user;
     }
 
-    /** A user who exists but is NOT attached to any club. */
     private function makeOutsider(): User
     {
         return User::factory()->create();
     }
 
-    public function test_a_manager_can_create_a_tenant_scoped_team(): void
+    /** Create a tournament in the current tenant context. */
+    private function makeTournament(string $name = 'Open Cup'): Tournament
+    {
+        return Tournament::create(['name' => $name, 'status' => 'draft', 'format' => 'single_elimination']);
+    }
+
+    private function makeTeam(Tournament $tournament, string $name): Team
+    {
+        return app(CreateTeam::class)->handle(new CreateTeamData(name: $name, tournamentId: $tournament->id));
+    }
+
+    public function test_a_manager_can_create_a_team_belonging_to_a_tournament(): void
     {
         Event::fake([TeamCreated::class]);
-
         $club = $this->makeClub('alpha');
 
         tenancy()->initialize($club);
-        $team = app(CreateTeam::class)->handle(new CreateTeamData(name: 'First VII'));
+        $tournament = $this->makeTournament();
+        $team = $this->makeTeam($tournament, 'First VII');
         tenancy()->end();
 
         $this->assertSame('alpha', $team->tenant_id);
         $this->assertSame('First VII', $team->name);
-        $this->assertNull($team->tournament_id);
+        $this->assertSame($tournament->id, $team->tournament_id);
 
-        Event::assertDispatched(
-            TeamCreated::class,
-            fn (TeamCreated $e) => $e->team->is($team),
-        );
+        Event::assertDispatched(TeamCreated::class, fn (TeamCreated $e) => $e->team->is($team));
     }
 
-    public function test_a_club_admin_can_create_a_team_over_http(): void
+    public function test_a_club_admin_can_create_a_team_under_a_tournament_over_http(): void
     {
         $club = $this->makeClub('alpha');
         $admin = $this->makeMember($club, 'club-admin');
 
-        $response = $this->withoutVite()
-            ->actingAs($admin)
-            ->post('http://alpha.localhost/teams', ['name' => 'Saturday Squad']);
+        tenancy()->initialize($club);
+        $tournament = $this->makeTournament();
+        tenancy()->end();
 
-        $response->assertRedirect();
-        $this->assertDatabaseHas('teams', [
-            'name' => 'Saturday Squad',
-            'tenant_id' => 'alpha',
-        ]);
+        $this->withoutVite()->actingAs($admin)
+            ->post("http://alpha.localhost/tournaments/{$tournament->id}/teams", ['name' => 'Saturday Squad'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('teams', ['name' => 'Saturday Squad', 'tenant_id' => 'alpha', 'tournament_id' => $tournament->id]);
     }
 
-    public function test_a_coach_can_create_a_team_over_http(): void
+    public function test_a_coach_can_create_a_team_under_a_tournament_over_http(): void
     {
         $club = $this->makeClub('alpha');
         $coach = $this->makeMember($club, 'coach');
 
-        $this->withoutVite()
-            ->actingAs($coach)
-            ->post('http://alpha.localhost/teams', ['name' => 'Coaching Squad'])
+        tenancy()->initialize($club);
+        $tournament = $this->makeTournament();
+        tenancy()->end();
+
+        $this->withoutVite()->actingAs($coach)
+            ->post("http://alpha.localhost/tournaments/{$tournament->id}/teams", ['name' => 'Coaching Squad'])
             ->assertRedirect();
 
         $this->assertDatabaseHas('teams', ['name' => 'Coaching Squad', 'tenant_id' => 'alpha']);
     }
 
-    public function test_a_club_member_can_be_added_to_the_roster_with_the_correct_tenant_id(): void
+    public function test_a_club_member_can_be_added_with_tenant_and_tournament_id_on_the_pivot(): void
     {
         Event::fake([PlayerAddedToTeam::class]);
-
         $club = $this->makeClub('alpha');
         $player = $this->makeMember($club, 'member');
 
         tenancy()->initialize($club);
-        $team = app(CreateTeam::class)->handle(new CreateTeamData(name: 'First VII'));
+        $tournament = $this->makeTournament();
+        $team = $this->makeTeam($tournament, 'First VII');
         app(AddPlayerToTeam::class)->handle($team, $player);
         tenancy()->end();
 
-        // The pivot row carries the tenant_id we passed explicitly on attach().
         $this->assertDatabaseHas('team_player', [
             'team_id' => $team->id,
             'user_id' => $player->id,
             'tenant_id' => 'alpha',
+            'tournament_id' => $tournament->id,
         ]);
 
         Event::assertDispatched(PlayerAddedToTeam::class);
@@ -133,7 +136,7 @@ class TeamManagementTest extends TestCase
         $outsider = $this->makeOutsider();
 
         tenancy()->initialize($club);
-        $team = app(CreateTeam::class)->handle(new CreateTeamData(name: 'First VII'));
+        $team = $this->makeTeam($this->makeTournament(), 'First VII');
 
         $this->expectException(RosterException::class);
         try {
@@ -143,13 +146,13 @@ class TeamManagementTest extends TestCase
         }
     }
 
-    public function test_the_same_player_cannot_be_added_twice(): void
+    public function test_the_same_player_cannot_be_added_to_the_same_team_twice(): void
     {
         $club = $this->makeClub('alpha');
         $player = $this->makeMember($club, 'member');
 
         tenancy()->initialize($club);
-        $team = app(CreateTeam::class)->handle(new CreateTeamData(name: 'First VII'));
+        $team = $this->makeTeam($this->makeTournament(), 'First VII');
         app(AddPlayerToTeam::class)->handle($team, $player);
 
         $this->expectException(RosterException::class);
@@ -160,61 +163,90 @@ class TeamManagementTest extends TestCase
         }
     }
 
-    public function test_a_player_can_be_removed_from_the_roster(): void
+    public function test_a_member_can_be_on_only_one_team_per_tournament(): void
     {
-        Event::fake([PlayerRemovedFromTeam::class]);
-
         $club = $this->makeClub('alpha');
         $player = $this->makeMember($club, 'member');
 
         tenancy()->initialize($club);
-        $team = app(CreateTeam::class)->handle(new CreateTeamData(name: 'First VII'));
+        $tournament = $this->makeTournament();
+        $teamA = $this->makeTeam($tournament, 'Team A');
+        $teamB = $this->makeTeam($tournament, 'Team B');
+        app(AddPlayerToTeam::class)->handle($teamA, $player);
+
+        $this->expectException(RosterException::class);
+        try {
+            app(AddPlayerToTeam::class)->handle($teamB, $player); // same tournament — rejected
+        } finally {
+            tenancy()->end();
+        }
+    }
+
+    public function test_a_member_can_play_for_teams_in_different_tournaments(): void
+    {
+        $club = $this->makeClub('alpha');
+        $player = $this->makeMember($club, 'member');
+
+        tenancy()->initialize($club);
+        $spring = $this->makeTeam($this->makeTournament('Spring'), 'Spring Team');
+        $summer = $this->makeTeam($this->makeTournament('Summer'), 'Summer Team');
+        app(AddPlayerToTeam::class)->handle($spring, $player);
+        app(AddPlayerToTeam::class)->handle($summer, $player); // different tournament — allowed
+        tenancy()->end();
+
+        $this->assertDatabaseHas('team_player', ['team_id' => $spring->id, 'user_id' => $player->id]);
+        $this->assertDatabaseHas('team_player', ['team_id' => $summer->id, 'user_id' => $player->id]);
+    }
+
+    public function test_adding_to_a_second_team_in_the_same_tournament_over_http_returns_a_422(): void
+    {
+        $club = $this->makeClub('alpha');
+        $admin = $this->makeMember($club, 'club-admin');
+        $player = $this->makeMember($club, 'member');
+
+        tenancy()->initialize($club);
+        $tournament = $this->makeTournament();
+        $teamA = $this->makeTeam($tournament, 'Team A');
+        $teamB = $this->makeTeam($tournament, 'Team B');
+        app(AddPlayerToTeam::class)->handle($teamA, $player);
+        tenancy()->end();
+
+        $this->withoutVite()->actingAs($admin)
+            ->from("http://alpha.localhost/teams/{$teamB->id}")
+            ->post("http://alpha.localhost/teams/{$teamB->id}/players", ['user_id' => $player->id])
+            ->assertSessionHasErrors('user_id');
+    }
+
+    public function test_a_player_can_be_removed_from_the_roster(): void
+    {
+        Event::fake([PlayerRemovedFromTeam::class]);
+        $club = $this->makeClub('alpha');
+        $player = $this->makeMember($club, 'member');
+
+        tenancy()->initialize($club);
+        $team = $this->makeTeam($this->makeTournament(), 'First VII');
         app(AddPlayerToTeam::class)->handle($team, $player);
         app(RemovePlayerFromTeam::class)->handle($team, $player);
         tenancy()->end();
 
-        $this->assertDatabaseMissing('team_player', [
-            'team_id' => $team->id,
-            'user_id' => $player->id,
-        ]);
-
+        $this->assertDatabaseMissing('team_player', ['team_id' => $team->id, 'user_id' => $player->id]);
         Event::assertDispatched(PlayerRemovedFromTeam::class);
     }
 
-    public function test_a_member_without_team_manage_is_forbidden(): void
+    public function test_a_member_without_team_manage_cannot_create_a_team(): void
     {
         $club = $this->makeClub('alpha');
-        // 'member' role lacks team.manage (only club-admin and coach have it).
         $member = $this->makeMember($club, 'member');
 
-        $this->withoutVite()
-            ->actingAs($member)
-            ->post('http://alpha.localhost/teams', ['name' => 'Sneaky Squad'])
+        tenancy()->initialize($club);
+        $tournament = $this->makeTournament();
+        tenancy()->end();
+
+        $this->withoutVite()->actingAs($member)
+            ->post("http://alpha.localhost/tournaments/{$tournament->id}/teams", ['name' => 'Sneaky Squad'])
             ->assertForbidden();
 
         $this->assertDatabaseMissing('teams', ['name' => 'Sneaky Squad']);
-    }
-
-    public function test_adding_a_non_member_over_http_returns_a_422(): void
-    {
-        $club = $this->makeClub('alpha');
-        $admin = $this->makeMember($club, 'club-admin');
-        $outsider = $this->makeOutsider();
-
-        tenancy()->initialize($club);
-        $team = app(CreateTeam::class)->handle(new CreateTeamData(name: 'First VII'));
-        tenancy()->end();
-
-        $this->withoutVite()
-            ->actingAs($admin)
-            ->from('http://alpha.localhost/teams/'.$team->id)
-            ->post('http://alpha.localhost/teams/'.$team->id.'/players', ['user_id' => $outsider->id])
-            ->assertSessionHasErrors('user_id');
-
-        $this->assertDatabaseMissing('team_player', [
-            'team_id' => $team->id,
-            'user_id' => $outsider->id,
-        ]);
     }
 
     public function test_teams_are_isolated_between_clubs(): void
@@ -223,11 +255,11 @@ class TeamManagementTest extends TestCase
         $beta = $this->makeClub('beta');
 
         tenancy()->initialize($alpha);
-        app(CreateTeam::class)->handle(new CreateTeamData(name: 'Alpha Squad'));
+        $this->makeTeam($this->makeTournament(), 'Alpha Squad');
         tenancy()->end();
 
         tenancy()->initialize($beta);
-        app(CreateTeam::class)->handle(new CreateTeamData(name: 'Beta Squad'));
+        $this->makeTeam($this->makeTournament(), 'Beta Squad');
         $this->assertSame(1, Team::count());
         $this->assertSame('Beta Squad', Team::first()->name);
         tenancy()->end();

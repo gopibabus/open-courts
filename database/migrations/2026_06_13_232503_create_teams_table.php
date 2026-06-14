@@ -11,7 +11,8 @@ use Illuminate\Support\Facades\Schema;
  * which is distinct from spatie/laravel-permission's "teams" feature — the latter
  * only reuses the `tenant_id` column to scope roles and has no table of its own.
  *
- * `tournament_id` is nullable so a team can exist before being entered into a draw.
+ * A team belongs to a tournament (a squad competing in it) and is deleted with it —
+ * teams are specific to a tournament and differ from tournament to tournament.
  */
 return new class extends Migration
 {
@@ -20,7 +21,7 @@ return new class extends Migration
         Schema::create('teams', function (Blueprint $table) {
             $table->id();
             $table->string('tenant_id')->index();
-            $table->foreignId('tournament_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('tournament_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->timestamps();
 

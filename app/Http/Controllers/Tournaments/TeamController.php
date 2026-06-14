@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Tournaments;
 
 use App\Domains\Tournaments\Actions\CreateTeam;
+use App\Domains\Tournaments\Data\CreateTeamData;
 use App\Domains\Tournaments\Models\Team;
+use App\Domains\Tournaments\Models\Tournament;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tournaments\TeamsStoreTeamRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,9 +24,10 @@ use Inertia\Response;
  * Tenant scoping is automatic: Team uses BelongsToTenant, so every query and the
  * {team} route-model binding are limited to the current club.
  *
- * OUT OF SCOPE for this slice: linking a team to specific tournament categories /
- * registrations — a later slice. `teams.tournament_id` (nullable) already lets a team
- * optionally belong to a tournament.
+ * A team belongs to a tournament (teams are created under a tournament), and a club
+ * member may be on only ONE team per tournament — enforced in AddPlayerToTeam and by a
+ * unique index. The roster picker on `show` excludes anyone already on a team in this
+ * tournament.
  */
 class TeamController extends Controller
 {
@@ -31,12 +35,14 @@ class TeamController extends Controller
     {
         $teams = Team::query()
             ->withCount('players')
+            ->with('tournament:id,name')
             ->orderBy('name')
             ->get()
             ->map(fn (Team $team) => [
                 'id' => $team->id,
                 'name' => $team->name,
                 'players_count' => $team->players_count,
+                'tournament' => $team->tournament ? ['id' => $team->tournament->id, 'name' => $team->tournament->name] : null,
             ]);
 
         return Inertia::render('teams/index', [
@@ -45,9 +51,12 @@ class TeamController extends Controller
         ]);
     }
 
-    public function store(TeamsStoreTeamRequest $request, CreateTeam $createTeam): RedirectResponse
+    public function store(TeamsStoreTeamRequest $request, Tournament $tournament, CreateTeam $createTeam): RedirectResponse
     {
-        $team = $createTeam->handle($request->toData());
+        $team = $createTeam->handle(new CreateTeamData(
+            name: (string) $request->string('name'),
+            tournamentId: (int) $tournament->getKey(),
+        ));
 
         return redirect()
             ->route('teams.show', $team)
@@ -56,14 +65,15 @@ class TeamController extends Controller
 
     public function show(Team $team): Response
     {
-        $team->load(['players' => fn ($q) => $q->orderBy('name')]);
+        $team->load(['players' => fn ($q) => $q->orderBy('name'), 'tournament:id,name']);
 
-        // Members of the club who are not yet on this team — the "add player" picker.
-        $rosterIds = $team->players->pluck('id');
+        // One team per member per tournament: the picker excludes everyone already on ANY
+        // team in this tournament (its own roster shows below; others are unavailable).
+        $takenIds = DB::table('team_player')->where('tournament_id', $team->tournament_id)->pluck('user_id');
         $availableMembers = $team->tenant()
             ->firstOrFail()
             ->users()
-            ->whereNotIn('users.id', $rosterIds)
+            ->whereNotIn('users.id', $takenIds)
             ->orderBy('name')
             ->get(['users.id', 'users.name'])
             ->map(fn ($user) => ['id' => $user->id, 'name' => $user->name]);
@@ -72,7 +82,7 @@ class TeamController extends Controller
             'team' => [
                 'id' => $team->id,
                 'name' => $team->name,
-                'tournament_id' => $team->tournament_id,
+                'tournament' => $team->tournament ? ['id' => $team->tournament->id, 'name' => $team->tournament->name] : null,
             ],
             'roster' => $team->players->map(fn ($player) => [
                 'id' => $player->id,

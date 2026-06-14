@@ -20,20 +20,20 @@ use Illuminate\Support\Facades\Route;
 | to the current club. The {player} binding is a User (no tenant scope); the
 | club-membership rule is enforced in AddPlayerToTeam (RosterException -> 422).
 |
-| OUT OF SCOPE for this slice: linking a team to specific tournament categories /
-| registrations — a later slice. `teams.tournament_id` already allows the optional link.
+| A team belongs to a tournament (created via tournaments.teams.store) and a club member
+| may be on only one team per tournament. The {team} binding is tenant-scoped.
 |
 */
 
 Route::middleware('auth')->group(function () {
-    // Read — any authenticated club member. `create`-style segments are not used; the
-    // create form lives in a dialog on the index page.
+    // Read — any authenticated club member. Teams are created under a tournament; this
+    // page lists them (grouped by tournament) with a link to each team's roster.
     Route::get('teams', [TeamController::class, 'index'])->name('teams.index');
     Route::get('teams/{team}', [TeamController::class, 'show'])->name('teams.show');
 
-    // Write — requires the club-scoped `team.manage` permission.
+    // Write — requires the club-scoped `team.manage` permission. Team creation lives under
+    // a tournament (tournaments.teams.store); here we delete teams + manage rosters.
     Route::middleware('can:team.manage')->group(function () {
-        Route::post('teams', [TeamController::class, 'store'])->name('teams.store');
         Route::delete('teams/{team}', [TeamController::class, 'destroy'])->name('teams.destroy');
 
         // Roster management.

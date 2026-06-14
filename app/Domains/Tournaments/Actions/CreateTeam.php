@@ -10,9 +10,8 @@ use App\Domains\Tournaments\Models\Team;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Create a team (squad) in the current club. `tournament_id` is optional — a team can
- * exist before being entered into a tournament draw (a later slice). The TeamCreated
- * event fires after commit.
+ * Create a team (squad) within a tournament. A team always belongs to a tournament —
+ * teams are specific to a tournament. The TeamCreated event fires after commit.
  *
  * BelongsToTenant auto-fills `tenant_id` from the active tenant context.
  */

@@ -1,17 +1,17 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * End-to-end: a club owner (a club-admin, so they have `team.manage`) registers a club via
- * the onboarding UI, then creates a team and sees it listed.
- *
- * Mirrors tests/e2e/courts.spec.ts for the onboarding portion. Roster management beyond
- * creation is covered by the Pest feature test; this E2E stops once the team is listed.
+ * End-to-end: a club owner (a club-admin, so they have `tournament.manage` + `team.manage`)
+ * registers a club, creates a tournament, then creates a team UNDER that tournament — teams
+ * are specific to a tournament. The one-team-per-tournament rule and the EC (management) are
+ * covered by the Pest feature tests; this E2E verifies the create-team-under-a-tournament flow.
  */
 test.describe('Teams', () => {
-    test('a club-admin can create a team and see it listed', async ({ page }) => {
+    test('a club-admin can create a team under a tournament', async ({ page }) => {
         const id = Date.now().toString(36);
         const slug = `teams${id}`;
         const clubName = `Teams Club ${id}`;
+        const tournamentName = `Cup ${id}`;
         const teamName = `First VII ${id}`;
 
         // --- Register the club (owner becomes club-admin) ---
@@ -23,23 +23,29 @@ test.describe('Teams', () => {
         await page.getByLabel('Password', { exact: true }).fill('password1234');
         await page.getByLabel('Confirm password').fill('password1234');
         await page.getByRole('button', { name: 'Create club' }).click();
-
-        // Land on the club subdomain dashboard.
         await page.waitForURL(new RegExp(`${slug}\\.lvh\\.me`));
 
-        // --- Create a team ---
-        await page.goto(`${new URL(page.url()).origin}/teams`);
-        await expect(page.getByRole('heading', { name: 'Teams' })).toBeVisible();
+        const origin = new URL(page.url()).origin;
 
+        // --- A team belongs to a tournament, so create one first ---
+        await page.goto(`${origin}/tournaments`);
+        await page.getByRole('link', { name: 'New tournament' }).click();
+        await page.waitForURL(/tournaments\/create/);
+        await page.getByLabel('Name').fill(tournamentName);
+        await page.getByRole('button', { name: 'Create tournament' }).click();
+        await expect(page.getByRole('heading', { name: tournamentName })).toBeVisible();
+
+        // --- Create a team from the tournament's page ---
         await page.getByRole('button', { name: 'New team' }).click();
         await page.getByLabel('Name').fill(teamName);
         await page.getByRole('button', { name: 'Create team' }).click();
 
-        // Redirected to the team's own page, which shows its name.
+        // Redirected to the team's roster page, which shows its name + its tournament.
         await expect(page.getByRole('heading', { name: teamName })).toBeVisible();
+        await expect(page.getByText(tournamentName).first()).toBeVisible();
 
-        // --- It appears in the list ---
-        await page.goto(`${new URL(page.url()).origin}/teams`);
+        // --- It appears in the club's teams list (with its tournament) ---
+        await page.goto(`${origin}/teams`);
         await expect(page.getByText(teamName)).toBeVisible();
     });
 });

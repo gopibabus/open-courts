@@ -23,4 +23,9 @@ final class RosterException extends RuntimeException
     {
         return new self('That player is already on this team.');
     }
+
+    public static function alreadyInTournament(): self
+    {
+        return new self('That player already plays for another team in this tournament.');
+    }
 }

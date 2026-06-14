@@ -44,11 +44,26 @@ interface TypeOption {
     label: string;
 }
 
+interface TeamRow {
+    id: number;
+    name: string;
+    players_count: number;
+}
+
+interface MemberRef {
+    id: number;
+    name: string;
+}
+
 interface ShowTournamentProps {
     tournament: Tournament;
     categories: Category[];
     categoryTypes: TypeOption[];
+    teams: TeamRow[];
+    management: MemberRef[];
+    availableManagers: MemberRef[];
     canManage: boolean;
+    canManageTeams: boolean;
 }
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -216,6 +231,115 @@ function OpenRegistrationDialog({ tournament }: { tournament: Tournament }) {
     );
 }
 
+interface TeamForm {
+    name: string;
+    [key: string]: string;
+}
+
+function NewTeamDialog({ tournamentId }: { tournamentId: number }) {
+    const [open, setOpen] = useState(false);
+    const { data, setData, post, processing, errors, reset } = useForm<TeamForm>({ name: '' });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        post(route('tournaments.teams.store', tournamentId), {
+            preserveScroll: true,
+            onSuccess: () => {
+                reset();
+                setOpen(false);
+            },
+        });
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                    <Plus /> New team
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <form onSubmit={submit} className="space-y-4">
+                    <DialogHeader>
+                        <DialogTitle>New team</DialogTitle>
+                        <DialogDescription>A squad competing in this tournament. Add players from its roster page.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-2">
+                        <Label htmlFor="team-name">Name</Label>
+                        <Input id="team-name" autoFocus value={data.name} onChange={(e) => setData('name', e.target.value)} placeholder="First VII" />
+                        <InputError message={errors.name} />
+                    </div>
+                    <DialogFooter>
+                        <Button type="submit" disabled={processing}>
+                            Create team
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+interface ManagerForm {
+    user_id: string;
+    [key: string]: string;
+}
+
+function AddManagerDialog({ tournamentId, members }: { tournamentId: number; members: MemberRef[] }) {
+    const [open, setOpen] = useState(false);
+    const { data, setData, post, processing, errors, reset } = useForm<ManagerForm>({ user_id: '' });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        post(route('tournaments.management.store', tournamentId), {
+            preserveScroll: true,
+            onSuccess: () => {
+                reset();
+                setOpen(false);
+            },
+        });
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                    <Plus /> Add to EC
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <form onSubmit={submit} className="space-y-4">
+                    <DialogHeader>
+                        <DialogTitle>Add to management (EC)</DialogTitle>
+                        <DialogDescription>A club member who helps run this tournament.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-2">
+                        <Label htmlFor="ec-member">Member</Label>
+                        <Select value={data.user_id} onValueChange={(v) => setData('user_id', v)}>
+                            <SelectTrigger id="ec-member">
+                                <SelectValue placeholder="Choose a member" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {members.map((m) => (
+                                    <SelectItem key={m.id} value={String(m.id)}>
+                                        {m.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.user_id} />
+                    </div>
+                    <DialogFooter>
+                        <Button type="submit" disabled={processing || !data.user_id}>
+                            Add
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function statusVariant(status: string): 'secondary' | 'outline' | 'default' {
     if (status === 'open') return 'default';
     if (status === 'completed') return 'outline';
@@ -309,7 +433,16 @@ function CategoryCard({ tournament, category, canManage }: { tournament: Tournam
     );
 }
 
-export default function ShowTournament({ tournament, categories, categoryTypes, canManage }: ShowTournamentProps) {
+export default function ShowTournament({
+    tournament,
+    categories,
+    categoryTypes,
+    teams,
+    management,
+    availableManagers,
+    canManage,
+    canManageTeams,
+}: ShowTournamentProps) {
     return (
         <ClubLayout title="Tournament">
             <div className="mx-auto max-w-4xl space-y-8">
@@ -351,6 +484,76 @@ export default function ShowTournament({ tournament, categories, categoryTypes, 
                         <ul className="space-y-4">
                             {categories.map((category) => (
                                 <CategoryCard key={category.id} tournament={tournament} category={category} canManage={canManage} />
+                            ))}
+                        </ul>
+                    )}
+                </section>
+
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Teams</h2>
+                        {canManageTeams && <NewTeamDialog tournamentId={tournament.id} />}
+                    </div>
+                    <p className="text-muted-foreground text-xs">
+                        Squads competing in this tournament — a member can be on only one team per tournament.
+                    </p>
+                    {teams.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">
+                            No teams yet.{canManageTeams ? ' Create one to start building a roster.' : ''}
+                        </p>
+                    ) : (
+                        <ul className="divide-border divide-y">
+                            {teams.map((team, i) => (
+                                <li key={team.id} className="flex items-center justify-between py-3">
+                                    <span className="flex items-center gap-3">
+                                        <span className="text-display text-muted-foreground w-6">{String(i + 1).padStart(2, '0')}</span>
+                                        <Link href={route('teams.show', team.id)} className="font-medium hover:underline">
+                                            {team.name}
+                                        </Link>
+                                        <span className="text-muted-foreground text-xs">
+                                            <span className="text-display">{team.players_count}</span> player{team.players_count === 1 ? '' : 's'}
+                                        </span>
+                                    </span>
+                                    <Link href={route('teams.show', team.id)} className="text-muted-foreground hover:text-foreground text-xs">
+                                        Manage roster →
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Management (EC)</h2>
+                        {canManage && <AddManagerDialog tournamentId={tournament.id} members={availableManagers} />}
+                    </div>
+                    <p className="text-muted-foreground text-xs">
+                        The club members who run this tournament. The EC can differ from tournament to tournament.
+                    </p>
+                    {management.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">
+                            No one on the management yet.{canManage ? ' Add the people running this tournament.' : ''}
+                        </p>
+                    ) : (
+                        <ul className="divide-border divide-y">
+                            {management.map((m) => (
+                                <li key={m.id} className="flex items-center justify-between py-3 text-sm">
+                                    <span className="font-medium">{m.name}</span>
+                                    {canManage && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                router.delete(route('tournaments.management.destroy', [tournament.id, m.id]), {
+                                                    preserveScroll: true,
+                                                })
+                                            }
+                                            className="text-muted-foreground hover:text-destructive text-xs"
+                                        >
+                                            Remove
+                                        </button>
+                                    )}
+                                </li>
                             ))}
                         </ul>
                     )}

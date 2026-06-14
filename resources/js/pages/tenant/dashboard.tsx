@@ -273,7 +273,7 @@ export default function TenantDashboard(props: DashboardProps) {
                 )}
                 {can.canManageTeams && (
                     <Button asChild size="sm" variant="outline">
-                        <Link href={route('teams.index')}>
+                        <Link href={route('tournaments.index')}>
                             <Plus /> New team
                         </Link>
                     </Button>

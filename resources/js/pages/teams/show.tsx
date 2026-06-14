@@ -18,7 +18,7 @@ interface Player {
 interface Team {
     id: number;
     name: string;
-    tournament_id: number | null;
+    tournament: { id: number; name: string } | null;
 }
 
 interface ShowTeamProps {
@@ -59,7 +59,10 @@ function AddPlayerDialog({ team, members }: { team: Team; members: Player[] }) {
                 <form onSubmit={submit} className="space-y-4">
                     <DialogHeader>
                         <DialogTitle>Add a player</DialogTitle>
-                        <DialogDescription>Pick a club member to add to this team's roster.</DialogDescription>
+                        <DialogDescription>
+                            Pick a club member to add. Members already on a team in this tournament aren't listed — a member can be on only one team
+                            per tournament.
+                        </DialogDescription>
                     </DialogHeader>
 
                     <div className="grid gap-2">
@@ -99,15 +102,27 @@ export default function ShowTeam({ team, roster, availableMembers, canManage }: 
         <ClubLayout title="Team">
             <div className="mx-auto max-w-4xl space-y-8">
                 <header className="space-y-3">
-                    <Link href={route('teams.index')} className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs">
-                        <ArrowLeft className="size-3.5" /> Teams
-                    </Link>
+                    {team.tournament ? (
+                        <Link
+                            href={route('tournaments.show', team.tournament.id)}
+                            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
+                        >
+                            <ArrowLeft className="size-3.5" /> {team.tournament.name}
+                        </Link>
+                    ) : (
+                        <Link
+                            href={route('teams.index')}
+                            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
+                        >
+                            <ArrowLeft className="size-3.5" /> Teams
+                        </Link>
+                    )}
                     <div className="flex items-start justify-between gap-4">
                         <div className="space-y-1">
                             <h1 className="text-2xl font-semibold tracking-tight">{team.name}</h1>
                             <p className="text-muted-foreground text-sm">
-                                <span className="text-display">{roster.length}</span> player
-                                {roster.length === 1 ? '' : 's'} on the roster
+                                <span className="text-display">{roster.length}</span> player{roster.length === 1 ? '' : 's'} on the roster
+                                {team.tournament && <> · {team.tournament.name}</>}
                             </p>
                         </div>
                         {canManage && <AddPlayerDialog team={team} members={availableMembers} />}
@@ -144,7 +159,7 @@ export default function ShowTeam({ team, roster, availableMembers, canManage }: 
                     {canManage && availableMembers.length === 0 && roster.length > 0 && (
                         <>
                             <Separator />
-                            <p className="text-muted-foreground text-xs">Every club member is already on this team.</p>
+                            <p className="text-muted-foreground text-xs">Every available club member is already on a team in this tournament.</p>
                         </>
                     )}
                 </section>

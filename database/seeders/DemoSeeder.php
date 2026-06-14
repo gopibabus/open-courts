@@ -219,8 +219,16 @@ class DemoSeeder extends Seeder
         foreach ($squads as $name => $handles) {
             $team = Team::create(['tournament_id' => $tournament->id, 'name' => $name]);
             foreach ($handles as $handle) {
-                $team->players()->attach($members[$handle]->id, ['tenant_id' => $team->tenant_id]);
+                $team->players()->attach($members[$handle]->id, [
+                    'tenant_id' => $team->tenant_id,
+                    'tournament_id' => $tournament->id,
+                ]);
             }
+        }
+
+        // The tournament's EC (management) — the club members running it.
+        foreach (['owner', 'coach'] as $handle) {
+            $tournament->management()->attach($members[$handle]->id, ['tenant_id' => $tournament->tenant_id]);
         }
     }
 }

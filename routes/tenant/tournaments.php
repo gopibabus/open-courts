@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Tournaments\CategoryController;
+use App\Http\Controllers\Tournaments\ManagementController;
 use App\Http\Controllers\Tournaments\RegistrationController;
+use App\Http\Controllers\Tournaments\TeamController;
 use App\Http\Controllers\Tournaments\TournamentController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +39,19 @@ Route::middleware('auth')->group(function () {
             ->name('tournaments.categories.store');
         Route::post('tournaments/{tournament}/open-registration', [TournamentController::class, 'openRegistration'])
             ->name('tournaments.open-registration');
+
+        // Tournament management (the EC) — add/remove the club members who run this
+        // tournament. The set can differ from tournament to tournament.
+        Route::post('tournaments/{tournament}/management', [ManagementController::class, 'store'])
+            ->name('tournaments.management.store');
+        Route::delete('tournaments/{tournament}/management/{user}', [ManagementController::class, 'destroy'])
+            ->name('tournaments.management.destroy');
+    });
+
+    // Create a team within a tournament — requires the club-scoped `team.manage` permission.
+    Route::middleware('can:team.manage')->group(function () {
+        Route::post('tournaments/{tournament}/teams', [TeamController::class, 'store'])
+            ->name('tournaments.teams.store');
     });
 
     Route::get('tournaments/{tournament}', [TournamentController::class, 'show'])->name('tournaments.show');

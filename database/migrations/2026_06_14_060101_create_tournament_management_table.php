@@ -5,22 +5,20 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Team roster: which users play on which tournament team. Tenant-scoped via `tenant_id`.
+ * Per-tournament management — the EC (executive committee). A tournament's management is
+ * the set of club members who run THAT tournament; it can differ from tournament to
+ * tournament. Tenant-scoped via `tenant_id`.
  *
- * Because attach() writes pivot rows with a raw insert (bypassing model events), the
- * tenant_id must be supplied explicitly when attaching, e.g.:
- *   $team->players()->attach($userId, ['tenant_id' => tenant('id')]);
+ * Like the team roster, attach() bypasses model events, so tenant_id must be supplied
+ * explicitly on the pivot when attaching.
  */
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('team_player', function (Blueprint $table) {
+        Schema::create('tournament_management', function (Blueprint $table) {
             $table->id();
             $table->string('tenant_id')->index();
-            $table->foreignId('team_id')->constrained()->cascadeOnDelete();
-            // Denormalised tournament_id (= team.tournament_id) so the unique index below
-            // can enforce "a member is on only ONE team per tournament".
             $table->foreignId('tournament_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
@@ -32,6 +30,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('team_player');
+        Schema::dropIfExists('tournament_management');
     }
 };

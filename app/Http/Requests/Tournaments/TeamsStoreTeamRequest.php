@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Tournaments;
 
-use App\Domains\Tournaments\Data\CreateTeamData;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -25,18 +24,9 @@ class TeamsStoreTeamRequest extends FormRequest
      */
     public function rules(): array
     {
+        // The tournament comes from the route ({tournament}); only the name is in the body.
         return [
             'name' => ['required', 'string', 'max:255'],
-            // Optional: a team may be tied to a tournament. Scoped to the current club.
-            'tournament_id' => ['nullable', 'integer', 'exists:tournaments,id'],
         ];
-    }
-
-    public function toData(): CreateTeamData
-    {
-        return new CreateTeamData(
-            name: (string) $this->string('name'),
-            tournamentId: $this->filled('tournament_id') ? (int) $this->integer('tournament_id') : null,
-        );
     }
 }
