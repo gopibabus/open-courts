@@ -246,6 +246,8 @@ export default function TenantDashboard(props: DashboardProps) {
 
     return (
         <ClubLayout title="Dashboard">
+            <h1 className="mb-6 text-2xl font-semibold tracking-tight">Dashboard</h1>
+
             {/* Quick actions */}
             <div className="mb-6 flex flex-wrap gap-2">
                 {can.canBook && (

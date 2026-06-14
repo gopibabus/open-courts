@@ -26,16 +26,16 @@ export default function ClubLayout({ title, children }: { title?: string; childr
             <AppContent variant="sidebar">
                 <header className="border-border bg-background/80 sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b px-4 backdrop-blur md:px-6">
                     <SidebarTrigger className="-ml-1" />
-                    {title ? <h1 className="text-lg font-semibold tracking-tight">{title}</h1> : null}
 
-                    {/* Search — visual placeholder for now; club-wide search is a later slice. */}
-                    <div className="border-border text-muted-foreground ml-auto hidden items-center gap-2 rounded-md border px-3 py-1.5 text-sm md:flex lg:w-72">
+                    {/* Search — visual placeholder for now; club-wide search is a later slice.
+                        The page title lives in each page's own content <h1>, not here (one h1 per page). */}
+                    <div className="border-border text-muted-foreground ml-2 hidden items-center gap-2 rounded-md border px-3 py-1.5 text-sm md:flex lg:w-72">
                         <Search className="size-4" />
                         <span className="flex-1">Search</span>
                         <kbd className="border-border rounded border px-1.5 text-[10px]">⌘F</kbd>
                     </div>
 
-                    <div className="ml-auto flex items-center gap-2 md:ml-0">
+                    <div className="ml-auto flex items-center gap-2">
                         <ThemeToggle />
                         <a
                             href="https://laravel.com/docs"
