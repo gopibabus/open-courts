@@ -1,23 +1,16 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import ClubLayout from '@/layouts/club-layout';
 
 // 0 = Monday .. 6 = Sunday — matches the smallInteger stored on court_availability.
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -134,7 +127,7 @@ function CourtFormDialog({
                             type="checkbox"
                             checked={data.is_active}
                             onChange={(e) => setData('is_active', e.target.checked)}
-                            className="size-4 accent-foreground"
+                            className="accent-foreground size-4"
                         />
                         Active (bookable)
                     </label>
@@ -171,8 +164,7 @@ function AvailabilityEditor({ court }: { court: Court }) {
         })),
     });
 
-    const addWindow = () =>
-        setData('windows', [...data.windows, { day_of_week: 0, opens_at: '09:00', closes_at: '21:00' }]);
+    const addWindow = () => setData('windows', [...data.windows, { day_of_week: 0, opens_at: '09:00', closes_at: '21:00' }]);
 
     const removeWindow = (index: number) =>
         setData(
@@ -209,15 +201,10 @@ function AvailabilityEditor({ court }: { court: Court }) {
                     </DialogHeader>
 
                     <div className="space-y-2">
-                        {data.windows.length === 0 && (
-                            <p className="text-sm text-muted-foreground">No open windows — this court is closed.</p>
-                        )}
+                        {data.windows.length === 0 && <p className="text-muted-foreground text-sm">No open windows — this court is closed.</p>}
                         {data.windows.map((w, i) => (
                             <div key={i} className="flex items-center gap-2">
-                                <Select
-                                    value={String(w.day_of_week)}
-                                    onValueChange={(v) => updateWindow(i, 'day_of_week', Number(v))}
-                                >
+                                <Select value={String(w.day_of_week)} onValueChange={(v) => updateWindow(i, 'day_of_week', Number(v))}>
                                     <SelectTrigger className="w-28">
                                         <SelectValue />
                                     </SelectTrigger>
@@ -242,13 +229,7 @@ function AvailabilityEditor({ court }: { court: Court }) {
                                     onChange={(e) => updateWindow(i, 'closes_at', e.target.value)}
                                     className="w-32"
                                 />
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => removeWindow(i)}
-                                    aria-label="Remove window"
-                                >
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeWindow(i)} aria-label="Remove window">
                                     <Trash2 />
                                 </Button>
                             </div>
@@ -380,21 +361,16 @@ export default function CourtsIndex({ courts, canManage }: CourtsIndexProps) {
         }
     };
 
-    const deleteBlackout = (id: number) =>
-        router.delete(route('blackouts.destroy', id), { preserveScroll: true });
+    const deleteBlackout = (id: number) => router.delete(route('blackouts.destroy', id), { preserveScroll: true });
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            <Head title="Courts" />
-
-            <div className="mx-auto max-w-4xl space-y-8 p-8">
+        <ClubLayout title="Courts">
+            <div className="mx-auto max-w-4xl space-y-8">
                 <header className="flex items-end justify-between">
                     <div className="space-y-1">
-                        <p className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-                            Facilities
-                        </p>
+                        <p className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Facilities</p>
                         <h1 className="text-2xl font-semibold tracking-tight">Courts</h1>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                             {courts.length} court{courts.length === 1 ? '' : 's'}
                         </p>
                     </div>
@@ -418,19 +394,14 @@ export default function CourtsIndex({ courts, canManage }: CourtsIndexProps) {
                 </header>
 
                 {courts.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                        No courts yet.{canManage ? ' Add your first court to get started.' : ''}
-                    </p>
+                    <p className="text-muted-foreground text-sm">No courts yet.{canManage ? ' Add your first court to get started.' : ''}</p>
                 ) : (
                     <ul className="space-y-4">
                         {courts.map((court, index) => (
-                            <li
-                                key={court.id}
-                                className="rounded-xl border border-border bg-card p-5"
-                            >
+                            <li key={court.id} className="border-border bg-card rounded-xl border p-5">
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex items-center gap-4">
-                                        <span className="text-display text-3xl leading-none text-muted-foreground">
+                                        <span className="text-display text-muted-foreground text-3xl leading-none">
                                             {String(index + 1).padStart(2, '0')}
                                         </span>
                                         <div>
@@ -481,18 +452,14 @@ export default function CourtsIndex({ courts, canManage }: CourtsIndexProps) {
 
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
-                                        <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                                            Weekly hours
-                                        </p>
+                                        <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">Weekly hours</p>
                                         {court.availability.length === 0 ? (
-                                            <p className="text-sm text-muted-foreground">No windows set.</p>
+                                            <p className="text-muted-foreground text-sm">No windows set.</p>
                                         ) : (
                                             <ul className="space-y-1 text-sm">
                                                 {court.availability.map((w) => (
                                                     <li key={w.id} className="flex items-center justify-between">
-                                                        <span className="text-muted-foreground">
-                                                            {DAY_LABELS[w.day_of_week]}
-                                                        </span>
+                                                        <span className="text-muted-foreground">{DAY_LABELS[w.day_of_week]}</span>
                                                         <span className="text-display">
                                                             {w.opens_at}–{w.closes_at}
                                                         </span>
@@ -503,11 +470,9 @@ export default function CourtsIndex({ courts, canManage }: CourtsIndexProps) {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                                            Blackouts
-                                        </p>
+                                        <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">Blackouts</p>
                                         {court.blackouts.length === 0 ? (
-                                            <p className="text-sm text-muted-foreground">None scheduled.</p>
+                                            <p className="text-muted-foreground text-sm">None scheduled.</p>
                                         ) : (
                                             <ul className="space-y-1 text-sm">
                                                 {court.blackouts.map((b) => (
@@ -538,6 +503,6 @@ export default function CourtsIndex({ courts, canManage }: CourtsIndexProps) {
                     </ul>
                 )}
             </div>
-        </div>
+        </ClubLayout>
     );
 }

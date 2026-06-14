@@ -1,22 +1,15 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import ClubLayout from '@/layouts/club-layout';
 
 interface Member {
     id: number;
@@ -65,25 +58,17 @@ export default function MembersIndex({ members, pendingInvitations, roles, can }
     };
 
     const changeRole = (memberId: number, role: string) => {
-        router.patch(
-            route('membership.members.update', memberId),
-            { role },
-            { preserveScroll: true },
-        );
+        router.patch(route('membership.members.update', memberId), { role }, { preserveScroll: true });
     };
 
     return (
-        <>
-            <Head title="Members" />
-
-            <div className="mx-auto max-w-3xl space-y-8 p-8">
+        <ClubLayout title="Members">
+            <div className="mx-auto max-w-3xl space-y-8">
                 <header className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
-                        <p className="text-sm font-medium text-muted-foreground">Club workspace</p>
+                        <p className="text-muted-foreground text-sm font-medium">Club workspace</p>
                         <h1 className="text-2xl font-semibold tracking-tight">Members</h1>
-                        <p className="text-sm text-muted-foreground">
-                            Manage who belongs to this club and what they can do.
-                        </p>
+                        <p className="text-muted-foreground text-sm">Manage who belongs to this club and what they can do.</p>
                     </div>
 
                     {can.manageMembers && (
@@ -95,9 +80,7 @@ export default function MembersIndex({ members, pendingInvitations, roles, can }
                                 <form onSubmit={submitInvite} className="space-y-6">
                                     <DialogHeader>
                                         <DialogTitle>Invite a member</DialogTitle>
-                                        <DialogDescription>
-                                            They'll get an email with a link to join this club.
-                                        </DialogDescription>
+                                        <DialogDescription>They'll get an email with a link to join this club.</DialogDescription>
                                     </DialogHeader>
 
                                     <div className="grid gap-4">
@@ -146,22 +129,17 @@ export default function MembersIndex({ members, pendingInvitations, roles, can }
                 </header>
 
                 <section className="space-y-3">
-                    <h2 className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                        Directory
-                    </h2>
-                    <ul className="divide-y divide-border rounded-xl border border-border">
+                    <h2 className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Directory</h2>
+                    <ul className="divide-border border-border divide-y rounded-xl border">
                         {members.map((member) => (
                             <li key={member.id} className="flex items-center justify-between gap-4 px-4 py-3">
                                 <div className="min-w-0">
                                     <p className="truncate font-medium">{member.name}</p>
-                                    <p className="truncate text-sm text-muted-foreground">{member.email}</p>
+                                    <p className="text-muted-foreground truncate text-sm">{member.email}</p>
                                 </div>
 
                                 {can.manageMembers ? (
-                                    <Select
-                                        value={member.roles[0] ?? ''}
-                                        onValueChange={(role) => changeRole(member.id, role)}
-                                    >
+                                    <Select value={member.roles[0] ?? ''} onValueChange={(role) => changeRole(member.id, role)}>
                                         <SelectTrigger className="w-40" aria-label={`Role for ${member.name}`}>
                                             <SelectValue placeholder="No role" />
                                         </SelectTrigger>
@@ -182,41 +160,34 @@ export default function MembersIndex({ members, pendingInvitations, roles, can }
                                                 </Badge>
                                             ))
                                         ) : (
-                                            <span className="text-sm text-muted-foreground">—</span>
+                                            <span className="text-muted-foreground text-sm">—</span>
                                         )}
                                     </div>
                                 )}
                             </li>
                         ))}
-                        {members.length === 0 && (
-                            <li className="px-4 py-6 text-sm text-muted-foreground">No members yet.</li>
-                        )}
+                        {members.length === 0 && <li className="text-muted-foreground px-4 py-6 text-sm">No members yet.</li>}
                     </ul>
                 </section>
 
                 {can.manageMembers && (
                     <section className="space-y-3">
-                        <h2 className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                            Pending invitations
-                        </h2>
+                        <h2 className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Pending invitations</h2>
                         {pendingInvitations.length > 0 ? (
-                            <ul className="divide-y divide-border rounded-xl border border-border">
+                            <ul className="divide-border border-border divide-y rounded-xl border">
                                 {pendingInvitations.map((invitation) => (
-                                    <li
-                                        key={invitation.id}
-                                        className="flex items-center justify-between gap-4 px-4 py-3"
-                                    >
+                                    <li key={invitation.id} className="flex items-center justify-between gap-4 px-4 py-3">
                                         <span className="truncate text-sm">{invitation.email}</span>
                                         <Badge variant="secondary">{invitation.role}</Badge>
                                     </li>
                                 ))}
                             </ul>
                         ) : (
-                            <p className="text-sm text-muted-foreground">No pending invitations.</p>
+                            <p className="text-muted-foreground text-sm">No pending invitations.</p>
                         )}
                     </section>
                 )}
             </div>
-        </>
+        </ClubLayout>
     );
 }

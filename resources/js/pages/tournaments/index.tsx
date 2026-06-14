@@ -1,8 +1,9 @@
-import { Head, Link } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import ClubLayout from '@/layouts/club-layout';
 
 interface TournamentRow {
     id: number;
@@ -41,15 +42,13 @@ function dateRange(from: string | null, to: string | null): string {
 
 export default function TournamentsIndex({ tournaments, canManage }: TournamentsIndexProps) {
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            <Head title="Tournaments" />
-
-            <div className="mx-auto max-w-4xl space-y-8 p-8">
+        <ClubLayout title="Tournaments">
+            <div className="mx-auto max-w-4xl space-y-8">
                 <header className="flex items-end justify-between">
                     <div className="space-y-1">
-                        <p className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Club</p>
+                        <p className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Club</p>
                         <h1 className="text-2xl font-semibold tracking-tight">Tournaments</h1>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                             {tournaments.length} tournament{tournaments.length === 1 ? '' : 's'}
                         </p>
                     </div>
@@ -63,47 +62,39 @@ export default function TournamentsIndex({ tournaments, canManage }: Tournaments
                 </header>
 
                 {tournaments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                        No tournaments yet.{canManage ? ' Create your first to get started.' : ''}
-                    </p>
+                    <p className="text-muted-foreground text-sm">No tournaments yet.{canManage ? ' Create your first to get started.' : ''}</p>
                 ) : (
                     <ul className="space-y-4">
                         {tournaments.map((t, index) => (
-                            <li key={t.id} className="rounded-xl border border-border bg-card p-5">
+                            <li key={t.id} className="border-border bg-card rounded-xl border p-5">
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex items-center gap-4">
-                                        <span className="text-display text-3xl leading-none text-muted-foreground">
+                                        <span className="text-display text-muted-foreground text-3xl leading-none">
                                             {String(index + 1).padStart(2, '0')}
                                         </span>
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
-                                                <Link
-                                                    href={route('tournaments.show', t.id)}
-                                                    className="font-medium hover:underline"
-                                                >
+                                                <Link href={route('tournaments.show', t.id)} className="font-medium hover:underline">
                                                     {t.name}
                                                 </Link>
                                                 <Badge variant={statusVariant(t.status)} className="capitalize">
                                                     {t.status}
                                                 </Badge>
                                             </div>
-                                            <p className="text-xs text-muted-foreground">
-                                                {FORMAT_LABELS[t.format] ?? t.format} ·{' '}
-                                                <span className="text-display">{t.categories_count}</span> categories
+                                            <p className="text-muted-foreground text-xs">
+                                                {FORMAT_LABELS[t.format] ?? t.format} · <span className="text-display">{t.categories_count}</span>{' '}
+                                                categories
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="text-right text-xs text-muted-foreground">
+                                    <div className="text-muted-foreground text-right text-xs">
                                         <div>
-                                            Plays{' '}
-                                            <span className="text-display">{dateRange(t.starts_on, t.ends_on)}</span>
+                                            Plays <span className="text-display">{dateRange(t.starts_on, t.ends_on)}</span>
                                         </div>
                                         <div>
                                             Registration{' '}
-                                            <span className="text-display">
-                                                {dateRange(t.registration_opens_on, t.registration_closes_on)}
-                                            </span>
+                                            <span className="text-display">{dateRange(t.registration_opens_on, t.registration_closes_on)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -112,6 +103,6 @@ export default function TournamentsIndex({ tournaments, canManage }: Tournaments
                     </ul>
                 )}
             </div>
-        </div>
+        </ClubLayout>
     );
 }

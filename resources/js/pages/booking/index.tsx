@@ -1,4 +1,4 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import ClubLayout from '@/layouts/club-layout';
 
 // 0 = Monday .. 6 = Sunday — matches the day_of_week stored on court_availability.
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -163,10 +164,7 @@ export default function BookingIndex({ courts, courtBookings, myBookings }: Book
     const [processing, setProcessing] = useState(false);
 
     const selectedCourt = courts.find((c) => String(c.id) === courtId);
-    const slots = useMemo(
-        () => buildSlots(selectedCourt, date, courtBookings),
-        [selectedCourt, date, courtBookings],
-    );
+    const slots = useMemo(() => buildSlots(selectedCourt, date, courtBookings), [selectedCourt, date, courtBookings]);
 
     const book = (slot: Slot) => {
         router.post(
@@ -191,35 +189,30 @@ export default function BookingIndex({ courts, courtBookings, myBookings }: Book
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            <Head title="Book a court" />
-
-            <div className="mx-auto max-w-4xl space-y-8 p-8">
+        <ClubLayout title="Bookings">
+            <div className="mx-auto max-w-4xl space-y-8">
                 <header className="space-y-1">
-                    <p className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Booking</p>
+                    <p className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Booking</p>
                     <h1 className="text-2xl font-semibold tracking-tight">Book a court</h1>
-                    <p className="text-sm text-muted-foreground">Pick a court and a day to see open slots.</p>
+                    <p className="text-muted-foreground text-sm">Pick a court and a day to see open slots.</p>
                 </header>
 
                 {flash && (
-                    <div className="rounded-lg border border-border bg-card px-4 py-2 text-sm" role="status">
+                    <div className="border-border bg-card rounded-lg border px-4 py-2 text-sm" role="status">
                         {flash}
                     </div>
                 )}
 
                 {bookingError && (
-                    <div
-                        className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive"
-                        role="alert"
-                    >
+                    <div className="border-destructive/40 bg-destructive/5 text-destructive rounded-lg border px-4 py-2 text-sm" role="alert">
                         {bookingError}
                     </div>
                 )}
 
                 {courts.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No bookable courts yet.</p>
+                    <p className="text-muted-foreground text-sm">No bookable courts yet.</p>
                 ) : (
-                    <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+                    <section className="border-border bg-card space-y-4 rounded-xl border p-5">
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="booking-court">Court</Label>
@@ -239,26 +232,18 @@ export default function BookingIndex({ courts, courtBookings, myBookings }: Book
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="booking-date">Date</Label>
-                                <Input
-                                    id="booking-date"
-                                    type="date"
-                                    min={today}
-                                    value={date}
-                                    onChange={(e) => setDate(e.target.value)}
-                                />
+                                <Input id="booking-date" type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} />
                             </div>
                         </div>
 
                         <Separator />
 
                         <div className="space-y-2">
-                            <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                                 {selectedCourt ? `${selectedCourt.name} · ${DAY_LABELS[domainDow(dateAtHour(date, 0))]}` : 'Slots'}
                             </p>
                             {slots.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    This court has no open hours on the selected day.
-                                </p>
+                                <p className="text-muted-foreground text-sm">This court has no open hours on the selected day.</p>
                             ) : (
                                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
                                     {slots.map((slot) => (
@@ -276,40 +261,30 @@ export default function BookingIndex({ courts, courtBookings, myBookings }: Book
                                     ))}
                                 </div>
                             )}
-                            <p className="text-xs text-muted-foreground">
-                                Greyed-out times are taken, blacked out, or in the past.
-                            </p>
+                            <p className="text-muted-foreground text-xs">Greyed-out times are taken, blacked out, or in the past.</p>
                         </div>
                     </section>
                 )}
 
                 <section className="space-y-3">
-                    <h2 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">My bookings</h2>
+                    <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">My bookings</h2>
                     {myBookings.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">You have no bookings yet.</p>
+                        <p className="text-muted-foreground text-sm">You have no bookings yet.</p>
                     ) : (
                         <ul className="space-y-2">
                             {myBookings.map((b) => (
-                                <li
-                                    key={b.id}
-                                    className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card px-4 py-3"
-                                >
+                                <li key={b.id} className="border-border bg-card flex items-center justify-between gap-4 rounded-lg border px-4 py-3">
                                     <div className="flex items-center gap-4">
-                                        <span className="text-display text-lg text-muted-foreground">
-                                            {timeOnly(b.starts_at)}
-                                        </span>
+                                        <span className="text-display text-muted-foreground text-lg">{timeOnly(b.starts_at)}</span>
                                         <div className="space-y-0.5">
                                             <p className="text-sm font-medium">{b.court_name ?? 'Court'}</p>
-                                            <p className="text-xs text-muted-foreground">
+                                            <p className="text-muted-foreground text-xs">
                                                 {fmt(b.starts_at)} – {timeOnly(b.ends_at)}
                                             </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <Badge
-                                            variant={STATUS_VARIANT[b.status] ?? 'outline'}
-                                            className="capitalize"
-                                        >
+                                        <Badge variant={STATUS_VARIANT[b.status] ?? 'outline'} className="capitalize">
                                             {b.status}
                                         </Badge>
                                         {b.can_cancel && (
@@ -324,6 +299,6 @@ export default function BookingIndex({ courts, courtBookings, myBookings }: Book
                     )}
                 </section>
             </div>
-        </div>
+        </ClubLayout>
     );
 }

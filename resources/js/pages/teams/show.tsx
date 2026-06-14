@@ -1,21 +1,14 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, UserPlus } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import ClubLayout from '@/layouts/club-layout';
 
 interface Player {
     id: number;
@@ -103,21 +96,16 @@ export default function ShowTeam({ team, roster, availableMembers, canManage }: 
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            <Head title={team.name} />
-
-            <div className="mx-auto max-w-4xl space-y-8 p-8">
+        <ClubLayout title="Team">
+            <div className="mx-auto max-w-4xl space-y-8">
                 <header className="space-y-3">
-                    <Link
-                        href={route('teams.index')}
-                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                    >
+                    <Link href={route('teams.index')} className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs">
                         <ArrowLeft className="size-3.5" /> Teams
                     </Link>
                     <div className="flex items-start justify-between gap-4">
                         <div className="space-y-1">
                             <h1 className="text-2xl font-semibold tracking-tight">{team.name}</h1>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-muted-foreground text-sm">
                                 <span className="text-display">{roster.length}</span> player
                                 {roster.length === 1 ? '' : 's'} on the roster
                             </p>
@@ -127,27 +115,23 @@ export default function ShowTeam({ team, roster, availableMembers, canManage }: 
                 </header>
 
                 <section className="space-y-4">
-                    <h2 className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Roster</h2>
+                    <h2 className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Roster</h2>
 
                     {roster.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            No players yet.{canManage ? ' Add club members to build the squad.' : ''}
-                        </p>
+                        <p className="text-muted-foreground text-sm">No players yet.{canManage ? ' Add club members to build the squad.' : ''}</p>
                     ) : (
-                        <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+                        <ul className="divide-border border-border bg-card divide-y rounded-xl border">
                             {roster.map((player, index) => (
                                 <li key={player.id} className="flex items-center justify-between gap-4 p-4">
                                     <span className="flex items-center gap-4">
-                                        <span className="text-display text-muted-foreground">
-                                            {String(index + 1).padStart(2, '0')}
-                                        </span>
+                                        <span className="text-display text-muted-foreground">{String(index + 1).padStart(2, '0')}</span>
                                         <span className="font-medium">{player.name}</span>
                                     </span>
                                     {canManage && (
                                         <button
                                             type="button"
                                             onClick={() => removePlayer(player)}
-                                            className="text-xs text-muted-foreground hover:text-destructive"
+                                            className="text-muted-foreground hover:text-destructive text-xs"
                                         >
                                             Remove
                                         </button>
@@ -160,13 +144,11 @@ export default function ShowTeam({ team, roster, availableMembers, canManage }: 
                     {canManage && availableMembers.length === 0 && roster.length > 0 && (
                         <>
                             <Separator />
-                            <p className="text-xs text-muted-foreground">
-                                Every club member is already on this team.
-                            </p>
+                            <p className="text-muted-foreground text-xs">Every club member is already on this team.</p>
                         </>
                     )}
                 </section>
             </div>
-        </div>
+        </ClubLayout>
     );
 }

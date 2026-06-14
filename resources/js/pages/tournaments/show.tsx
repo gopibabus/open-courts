@@ -1,23 +1,16 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import ClubLayout from '@/layouts/club-layout';
 
 interface Entrant {
     id: number;
@@ -235,15 +228,7 @@ function dateRange(from: string | null, to: string | null): string {
     return from ?? to ?? '—';
 }
 
-function CategoryCard({
-    tournament,
-    category,
-    canManage,
-}: {
-    tournament: Tournament;
-    category: Category;
-    canManage: boolean;
-}) {
+function CategoryCard({ tournament, category, canManage }: { tournament: Tournament; category: Category; canManage: boolean }) {
     // Active = anyone not withdrawn (capacity is measured against these).
     const active = category.entrants.filter((e) => e.status !== 'withdrawn');
     const isOpen = tournament.status === 'open';
@@ -261,7 +246,7 @@ function CategoryCard({
     };
 
     return (
-        <li className="rounded-xl border border-border bg-card p-5">
+        <li className="border-border bg-card rounded-xl border p-5">
             <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -270,7 +255,7 @@ function CategoryCard({
                             {category.type}
                         </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                         <span className="text-display">{active.length}</span>
                         {category.max_entrants !== null && (
                             <>
@@ -294,15 +279,13 @@ function CategoryCard({
             <Separator className="my-4" />
 
             {active.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No entrants yet.</p>
+                <p className="text-muted-foreground text-sm">No entrants yet.</p>
             ) : (
                 <ul className="space-y-1 text-sm">
                     {active.map((e, index) => (
                         <li key={e.id} className="flex items-center justify-between gap-2">
                             <span className="flex items-center gap-3">
-                                <span className="text-display text-muted-foreground">
-                                    {e.seed ?? String(index + 1).padStart(2, '0')}
-                                </span>
+                                <span className="text-display text-muted-foreground">{e.seed ?? String(index + 1).padStart(2, '0')}</span>
                                 <span>
                                     {e.user?.name ?? '—'}
                                     {e.partner && <span className="text-muted-foreground"> &amp; {e.partner.name}</span>}
@@ -314,11 +297,7 @@ function CategoryCard({
                                 )}
                             </span>
                             {canManage && (
-                                <button
-                                    type="button"
-                                    onClick={() => withdraw(e.id)}
-                                    className="text-xs text-muted-foreground hover:text-destructive"
-                                >
+                                <button type="button" onClick={() => withdraw(e.id)} className="text-muted-foreground hover:text-destructive text-xs">
                                     Withdraw
                                 </button>
                             )}
@@ -332,14 +311,12 @@ function CategoryCard({
 
 export default function ShowTournament({ tournament, categories, categoryTypes, canManage }: ShowTournamentProps) {
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            <Head title={tournament.name} />
-
-            <div className="mx-auto max-w-4xl space-y-8 p-8">
+        <ClubLayout title="Tournament">
+            <div className="mx-auto max-w-4xl space-y-8">
                 <header className="space-y-3">
                     <Link
                         href={route('tournaments.index')}
-                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
                     >
                         <ArrowLeft className="size-3.5" /> Tournaments
                     </Link>
@@ -351,15 +328,10 @@ export default function ShowTournament({ tournament, categories, categoryTypes, 
                                     {tournament.status}
                                 </Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-muted-foreground text-sm">
                                 {FORMAT_LABELS[tournament.format] ?? tournament.format} · plays{' '}
-                                <span className="text-display">
-                                    {dateRange(tournament.starts_on, tournament.ends_on)}
-                                </span>{' '}
-                                · registration{' '}
-                                <span className="text-display">
-                                    {dateRange(tournament.registration_opens_on, tournament.registration_closes_on)}
-                                </span>
+                                <span className="text-display">{dateRange(tournament.starts_on, tournament.ends_on)}</span> · registration{' '}
+                                <span className="text-display">{dateRange(tournament.registration_opens_on, tournament.registration_closes_on)}</span>
                             </p>
                         </div>
                         {canManage && (
@@ -372,25 +344,18 @@ export default function ShowTournament({ tournament, categories, categoryTypes, 
                 </header>
 
                 <section className="space-y-4">
-                    <h2 className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Categories</h2>
+                    <h2 className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Categories</h2>
                     {categories.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            No categories yet.{canManage ? ' Add one to let members register.' : ''}
-                        </p>
+                        <p className="text-muted-foreground text-sm">No categories yet.{canManage ? ' Add one to let members register.' : ''}</p>
                     ) : (
                         <ul className="space-y-4">
                             {categories.map((category) => (
-                                <CategoryCard
-                                    key={category.id}
-                                    tournament={tournament}
-                                    category={category}
-                                    canManage={canManage}
-                                />
+                                <CategoryCard key={category.id} tournament={tournament} category={category} canManage={canManage} />
                             ))}
                         </ul>
                     )}
                 </section>
             </div>
-        </div>
+        </ClubLayout>
     );
 }
