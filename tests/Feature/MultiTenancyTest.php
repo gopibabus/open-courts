@@ -110,7 +110,8 @@ class MultiTenancyTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('tenant/dashboard')
             ->where('club.slug', 'alpha')
-            ->where('roles', ['member'])
+            // The member's club-scoped role surfaces in the dashboard's recent-members list.
+            ->where('recentMembers.0.roles', ['member'])
         );
     }
 }

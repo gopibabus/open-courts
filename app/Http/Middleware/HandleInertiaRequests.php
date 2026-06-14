@@ -45,6 +45,12 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // The active club, shared on every tenant-domain request so the club shell
+            // (sidebar/topbar) always has the club name without each controller passing it.
+            // Null on the central domain, where tenancy isn't initialized.
+            'club' => fn () => ($tenant = tenant())
+                ? ['id' => $tenant->getTenantKey(), 'name' => $tenant->name, 'slug' => $tenant->slug]
+                : null,
         ]);
     }
 }

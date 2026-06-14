@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Domains\Facilities\Models\Court;
+use App\Http\Controllers\Tenant\DashboardController;
 use App\Http\Middleware\EnsureClubActive;
 use App\Http\Middleware\ForgetTenantRouteParameter;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
@@ -35,21 +34,9 @@ Route::domain('{tenant}.'.config('tenancy.central_domain'))
     ])
     ->group(function () {
         Route::middleware('auth')->group(function () {
-            Route::get('/', function () {
-                $club = tenant(); // App\Domains\Tenancy\Models\Tenant — the resolved club
-
-                return Inertia::render('tenant/dashboard', [
-                    'club' => [
-                        'id' => $club->getTenantKey(),
-                        'name' => $club->name,
-                        'slug' => $club->slug,
-                    ],
-                    // Club-scoped roles: resolved against this tenant's team context.
-                    'roles' => auth()->user()->getRoleNames(),
-                    // Tenant-scoped query: BelongsToTenant limits this to the current club.
-                    'courts' => Court::query()->orderBy('name')->get(['id', 'name', 'surface']),
-                ]);
-            })->name('tenant.dashboard');
+            // The club dashboard — a read-only aggregation of the club's bookings, courts,
+            // tournaments, teams and members. See App\Http\Controllers\Tenant\DashboardController.
+            Route::get('/', [DashboardController::class, 'index'])->name('tenant.dashboard');
         });
 
         // Per-context tenant (club) routes — each bounded context drops a file in

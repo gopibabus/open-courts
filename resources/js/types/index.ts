@@ -21,10 +21,18 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface Club {
+    id: string;
+    name: string;
+    slug: string;
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    /** The active club, shared on club-subdomain requests; null on the central domain. */
+    club?: Club | null;
     [key: string]: unknown;
 }
 
