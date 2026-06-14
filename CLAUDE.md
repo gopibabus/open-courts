@@ -104,6 +104,15 @@ thin Controller + FormRequest → shadcn UI page → **Pest feature test + Playw
 - **`Event::fake()` (no args) before creating roles/permissions breaks spatie** — it swallows the
   model events that bust spatie's permission cache, causing `PermissionDoesNotExist`. Provision
   roles BEFORE faking, or fake only specific event classes (`Event::fake([X::class])`).
+- **NEVER run `php artisan test` inside the running app container without forced test env.**
+  The container exports real `DB_CONNECTION=pgsql` (+ redis/mailpit) via `docker-compose.yml`;
+  a plain `<env>` in `phpunit.xml` is IGNORED when the var already exists in the real environment,
+  so the suite would run against the **live Postgres DB** and `RefreshDatabase`'s `migrate:fresh`
+  **drops every table** (this wiped all tenants once). Fixed by `tests/bootstrap.php`, which
+  overwrites `$_SERVER`/`$_ENV`/`putenv` BEFORE the framework boots (Laravel's immutable dotenv
+  then keeps the test values), plus `force="true"` on every `phpunit.xml` `<env>`. The guardrail
+  `TestSuiteUsesIsolatedDatabaseTest` asserts the active connection is in-memory sqlite — if it
+  fails, STOP, do not run the rest of the suite.
 
 ## Gotchas
 

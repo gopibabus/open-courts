@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="vendor/autoload.php"
+         bootstrap="tests/bootstrap.php"
          colors="true"
 >
     <testsuites>
@@ -18,20 +18,28 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
-        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <!-- force="true" on EVERY var is load-bearing, not cosmetic: a non-forced
+             <env> is ignored when the same variable already exists in the real
+             environment. Running `php artisan test` inside the app container (which
+             exports DB_CONNECTION=pgsql, CACHE_STORE=redis, etc. via docker-compose)
+             would therefore run the suite against the LIVE Postgres DB — and
+             RefreshDatabase's migrate:fresh DROPS every table. force="true" makes
+             these isolated test values win everywhere, so the suite is hermetic on
+             the host AND in the container. See TestSuiteUsesIsolatedDatabaseTest. -->
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
         <!-- Pin the test host to the central domain so domain-constrained central
              routes resolve under the default (relative-path) test requests. -->
-        <env name="APP_URL" value="http://localhost"/>
-        <env name="CENTRAL_DOMAIN" value="localhost"/>
-        <env name="BCRYPT_ROUNDS" value="4"/>
-        <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
-        <env name="MAIL_MAILER" value="array"/>
-        <env name="PULSE_ENABLED" value="false"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="SESSION_DRIVER" value="array"/>
-        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="APP_URL" value="http://localhost" force="true"/>
+        <env name="CENTRAL_DOMAIN" value="localhost" force="true"/>
+        <env name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="DB_CONNECTION" value="sqlite" force="true"/>
+        <env name="DB_DATABASE" value=":memory:" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
+        <env name="PULSE_ENABLED" value="false" force="true"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="TELESCOPE_ENABLED" value="false" force="true"/>
     </php>
 </phpunit>
