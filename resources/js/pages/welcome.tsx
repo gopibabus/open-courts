@@ -770,7 +770,9 @@ export default function Welcome() {
                         <Separator className="my-8" />
                         <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2 text-xs">
                             <span>OpenTennis • 2026 — courts, games and good company, sorted.</span>
-                            <StatusDot label="everything running smoothly" />
+                            <span>
+                                Crafted by <span className="text-foreground font-medium">GH Global Systems</span>
+                            </span>
                         </div>
                     </div>
                 </footer>
