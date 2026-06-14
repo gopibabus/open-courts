@@ -31,6 +31,10 @@ class BookingController extends Controller
      * The booking screen: every court (with weekly windows + blackouts) so the client
      * can render open slots, the court's upcoming reserved bookings so taken slots show
      * as unavailable, and the current member's own bookings for the "my bookings" list.
+     *
+     * Datetimes are serialized as NAIVE wall-clock ("Y-m-d\TH:i:s", no offset): booking
+     * times are club-local wall-clock, so an offset would make the client's new Date()
+     * shift them into the browser's timezone (e.g. a 10:00 booking showing as 06:00).
      */
     public function index(): Response
     {
@@ -54,8 +58,8 @@ class BookingController extends Controller
                     'closes_at' => $w->closes_at?->format('H:i'),
                 ])->values(),
                 'blackouts' => $court->blackouts->map(fn ($b) => [
-                    'starts_at' => $b->starts_at?->toIso8601String(),
-                    'ends_at' => $b->ends_at?->toIso8601String(),
+                    'starts_at' => $b->starts_at?->format('Y-m-d\TH:i:s'),
+                    'ends_at' => $b->ends_at?->format('Y-m-d\TH:i:s'),
                 ])->values(),
             ]);
 
@@ -68,8 +72,8 @@ class BookingController extends Controller
             ->map(fn (Booking $b) => [
                 'id' => $b->id,
                 'court_id' => $b->court_id,
-                'starts_at' => $b->starts_at?->toIso8601String(),
-                'ends_at' => $b->ends_at?->toIso8601String(),
+                'starts_at' => $b->starts_at?->format('Y-m-d\TH:i:s'),
+                'ends_at' => $b->ends_at?->format('Y-m-d\TH:i:s'),
             ]);
 
         // The signed-in member's own bookings (any status), newest window first.
@@ -82,8 +86,8 @@ class BookingController extends Controller
                 'id' => $b->id,
                 'court_id' => $b->court_id,
                 'court_name' => $b->court?->name,
-                'starts_at' => $b->starts_at?->toIso8601String(),
-                'ends_at' => $b->ends_at?->toIso8601String(),
+                'starts_at' => $b->starts_at?->format('Y-m-d\TH:i:s'),
+                'ends_at' => $b->ends_at?->format('Y-m-d\TH:i:s'),
                 'status' => $b->status->value,
                 'can_cancel' => $b->status === BookingStatus::Reserved,
             ]);

@@ -33,7 +33,19 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended($this->postLoginRedirect($request));
+    }
+
+    /**
+     * Where to land after login when there's no "intended" URL. On the central domain
+     * that's the central dashboard ("/dashboard"); on a club subdomain the dashboard is
+     * "/" (the central-only "/dashboard" route doesn't exist there and would 404).
+     */
+    private function postLoginRedirect(Request $request): string
+    {
+        $isCentral = in_array($request->getHost(), config('tenancy.central_domains', []), true);
+
+        return $isCentral ? route('dashboard', absolute: false) : '/';
     }
 
     /**
