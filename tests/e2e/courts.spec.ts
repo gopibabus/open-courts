@@ -20,7 +20,7 @@ test.describe('Courts management', () => {
         await page.waitForURL(new RegExp(`${slug}\\.lvh\\.me`));
 
         // Navigate to the courts page (same subdomain origin).
-        await page.goto(`http://${slug}.lvh.me:8000/courts`);
+        await page.goto(`${new URL(page.url()).origin}/courts`);
         await expect(page.getByRole('heading', { name: 'Courts' })).toBeVisible();
 
         // Create a court via the dialog.

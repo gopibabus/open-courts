@@ -23,7 +23,7 @@ test.describe('Members & invitations', () => {
         await page.waitForURL(new RegExp(`${slug}\\.lvh\\.me`));
 
         // 2. Go to the members page on the club subdomain.
-        await page.goto(`http://${slug}.lvh.me:8000/members`);
+        await page.goto(`${new URL(page.url()).origin}/members`);
         await expect(page.getByRole('heading', { name: 'Members' })).toBeVisible();
 
         // 3. Send an invite.

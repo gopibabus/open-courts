@@ -28,7 +28,7 @@ test.describe('Teams', () => {
         await page.waitForURL(new RegExp(`${slug}\\.lvh\\.me`));
 
         // --- Create a team ---
-        await page.goto(`http://${slug}.lvh.me:8000/teams`);
+        await page.goto(`${new URL(page.url()).origin}/teams`);
         await expect(page.getByRole('heading', { name: 'Teams' })).toBeVisible();
 
         await page.getByRole('button', { name: 'New team' }).click();
@@ -39,7 +39,7 @@ test.describe('Teams', () => {
         await expect(page.getByRole('heading', { name: teamName })).toBeVisible();
 
         // --- It appears in the list ---
-        await page.goto(`http://${slug}.lvh.me:8000/teams`);
+        await page.goto(`${new URL(page.url()).origin}/teams`);
         await expect(page.getByText(teamName)).toBeVisible();
     });
 });

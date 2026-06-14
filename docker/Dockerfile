@@ -47,6 +47,8 @@ RUN apt-get -yqq update \
         gd \
         bcmath \
         opcache \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
     && a2enmod rewrite expires headers \
     && rm -rf /var/lib/apt/lists/*
 

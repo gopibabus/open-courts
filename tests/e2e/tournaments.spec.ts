@@ -28,7 +28,7 @@ test.describe('Tournaments', () => {
         await page.waitForURL(new RegExp(`${slug}\\.lvh\\.me`));
 
         // --- Create a tournament ---
-        await page.goto(`http://${slug}.lvh.me:8000/tournaments`);
+        await page.goto(`${new URL(page.url()).origin}/tournaments`);
         await page.getByRole('link', { name: 'New tournament' }).click();
         await page.waitForURL(/tournaments\/create/);
 
@@ -39,7 +39,7 @@ test.describe('Tournaments', () => {
         await expect(page.getByRole('heading', { name: tournamentName })).toBeVisible();
 
         // --- It appears in the list ---
-        await page.goto(`http://${slug}.lvh.me:8000/tournaments`);
+        await page.goto(`${new URL(page.url()).origin}/tournaments`);
         await expect(page.getByText(tournamentName)).toBeVisible();
     });
 });

@@ -40,7 +40,7 @@ test.describe('Court booking', () => {
         await page.waitForURL(new RegExp(`${slug}\\.lvh\\.me`));
 
         // 2. Create a court.
-        await page.goto(`http://${slug}.lvh.me:8000/courts`);
+        await page.goto(`${new URL(page.url()).origin}/courts`);
         await expect(page.getByRole('heading', { name: 'Courts' })).toBeVisible();
 
         const courtName = `Show Court ${id}`;
@@ -62,10 +62,15 @@ test.describe('Court booking', () => {
         const timeInputs = page.locator('input[type="time"]');
         await timeInputs.nth(0).fill('08:00');
         await timeInputs.nth(1).fill('20:00');
-        await page.getByRole('button', { name: 'Save schedule' }).click();
+        // Wait for the availability PUT to commit before navigating away — otherwise a
+        // slower server can race: /bookings loads before the schedule is persisted.
+        await Promise.all([
+            page.waitForResponse((r) => r.request().method() === 'PUT' && /\/courts\/\d+\/availability/.test(r.url())),
+            page.getByRole('button', { name: 'Save schedule' }).click(),
+        ]);
 
         // 4. Go to the booking screen, pick the court + date, book a slot.
-        await page.goto(`http://${slug}.lvh.me:8000/bookings`);
+        await page.goto(`${new URL(page.url()).origin}/bookings`);
         await expect(page.getByRole('heading', { name: 'Book a court' })).toBeVisible();
 
         await page.getByLabel('Date').fill(dateValue);

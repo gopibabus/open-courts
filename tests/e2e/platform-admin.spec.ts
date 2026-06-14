@@ -29,7 +29,7 @@ test.describe('Platform admin guard', () => {
 
         // Hit the central platform-admin area. The session is shared across subdomains,
         // so we arrive authenticated — but as a non-admin, EnsurePlatformAdmin returns 403.
-        const response = await page.goto('http://lvh.me:8000/admin/clubs');
+        const response = await page.goto('/admin/clubs');
         expect(response?.status()).toBe(403);
     });
 });

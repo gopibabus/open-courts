@@ -58,7 +58,22 @@ docker compose up --build                 # full stack (app=Apache, db=Postgres,
 npm run build                             # required before Inertia HTTP tests render HTML
 ```
 
-App runs at **http://lvh.me:8000** (host dev) / **:8080** (Docker); clubs at `<slug>.lvh.me`.
+App runs at **http://lvh.me:8000** (host dev) / **http://lvh.me:8080** (Docker); clubs at `<slug>.lvh.me`.
+Run the full E2E against the Docker container with `E2E_BASE_URL=http://lvh.me:8080 npx playwright test`.
+
+## Docker (must stay true)
+
+- The `app` image needs **`pdo_pgsql` + `redis` (phpredis)** PHP extensions (in `docker/Dockerfile`)
+  and a **queue worker** in `docker/supervisord.conf` — without the worker, `ShouldQueue`
+  listeners (welcome/invitation/booking emails) never run and no mail is sent.
+- Container env (in `docker-compose.yml`) puts cache/session/queue on **redis** and mail on
+  **mailpit** (SMTP `tennis-mailpit:1025`, web UI :8025). Redis cache keys live in **DB 1**
+  (`REDIS_CACHE_DB`), so `redis-cli -n 1 keys '*'`.
+- After changing the Dockerfile/start.sh/supervisord, **rebuild** (`docker compose build`) —
+  `/usr/local/bin/start` and the extensions are baked into the image, not bind-mounted.
+- E2E specs must be **port-agnostic**: derive the club origin from `new URL(page.url()).origin`
+  (never hardcode `:8000`), and **wait for a save's PUT/redirect** before navigating away — the
+  Apache app has higher latency than `artisan serve` and will race otherwise.
 
 ## Vertical-slice pattern (follow for every feature)
 

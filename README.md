@@ -43,23 +43,25 @@ login, register, settings  → universal (work on central and club subdomains)
 ## Running with Docker (recommended)
 
 ```bash
-cp .env.example .env          # then: php artisan key:generate   (or let the container do it)
-docker compose up --build     # builds the image, starts MySQL + the app
-docker compose exec tennis-web php artisan migrate --seed   # first-time demo data
+cp .env.example .env          # has a working APP_KEY/config out of the box
+docker compose up --build     # starts: app (Apache), postgres, redis, mailpit
+docker compose exec tennis-web php artisan db:seed   # optional: demo platform-admin + club
 ```
 
-App: <http://localhost:8080> · Demo club: <http://smashclub.localhost:8080>
+`docker compose up` starts four services and runs migrations on boot:
 
-To auto-seed on first boot instead, set `SEED_ON_START=true` in `docker/.docker.env`.
+| URL | What |
+| --- | --- |
+| <http://lvh.me:8080> | the app (central domain) |
+| <http://lvh.me:8080/register-club> | onboard a club |
+| `http://<slug>.lvh.me:8080` | a club workspace (e.g. after onboarding) |
+| <http://lvh.me:8080/ui> | the design-system gallery |
+| <http://localhost:8025> | **Mailpit** — sent emails land here |
 
-### Accessing club subdomains locally
+`*.lvh.me` resolves to 127.0.0.1 with no hosts-file changes, and the session cookie is shared
+across club subdomains. To auto-seed on first boot, set `SEED_ON_START=true` in `docker/.docker.env`.
 
-Chrome resolves `*.localhost` to 127.0.0.1 automatically. On Safari/Firefox add a hosts
-entry:
-
-```
-127.0.0.1   smashclub.localhost
-```
+End-to-end against the running container: `E2E_BASE_URL=http://lvh.me:8080 npx playwright test`.
 
 ## Running locally without Docker
 
