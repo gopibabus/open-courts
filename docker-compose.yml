@@ -11,11 +11,19 @@ services:
             # Override the bind-mounted .env so the container talks to the compose
             # services by name (Laravel's immutable dotenv won't clobber real env vars).
             CONTAINER_ROLE: app
-            # Access the dockerised app at http://lvh.me:8080 and clubs at
-            # http://<club>.lvh.me:8080 (lvh.me -> 127.0.0.1, with shared cookies).
-            APP_URL: http://lvh.me:8080
-            CENTRAL_DOMAIN: lvh.me
-            SESSION_DOMAIN: lvh.me
+            # Central domain. lvh.me (-> 127.0.0.1) is ideal because the session cookie is
+            # shared across club subdomains; but some browsers block lvh.me (DNS-rebinding
+            # protection), so we use localhost here. Trade-off: localhost <-> <club>.localhost
+            # do NOT share the session cookie, so members log in per club subdomain.
+            APP_URL: http://localhost:8080
+            CENTRAL_DOMAIN: localhost
+            # Host-only cookies ("null"): a Domain=localhost cookie is NOT sent to
+            # <club>.localhost in Chrome, which breaks CSRF (419) on subdomain login.
+            # Host-only means each subdomain keeps its own session (log in per club).
+            SESSION_DOMAIN: "null"
+            # Fresh cookie name so any stale Domain=localhost session cookie left over
+            # from an earlier config is ignored (avoids duplicate-cookie CSRF 419s).
+            SESSION_COOKIE: ot_session
             DB_CONNECTION: pgsql
             DB_HOST: tennis-postgres
             DB_PORT: 5432
