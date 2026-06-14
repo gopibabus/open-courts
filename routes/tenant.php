@@ -46,5 +46,11 @@ Route::domain('{tenant}.'.config('tenancy.central_domain'))
                     'courts' => Court::query()->orderBy('name')->get(['id', 'name', 'surface']),
                 ]);
             })->name('tenant.dashboard');
+
+            // Per-context tenant (club) routes — each bounded context drops a file in
+            // routes/tenant/ and it is auto-loaded inside this tenant + auth group.
+            foreach ((array) glob(base_path('routes/tenant/*.php')) as $contextRoutes) {
+                require $contextRoutes;
+            }
         });
     });

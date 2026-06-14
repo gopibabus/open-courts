@@ -28,6 +28,12 @@ Route::domain(config('tenancy.central_domain'))->group(function () {
             return Inertia::render('dashboard');
         })->name('dashboard');
     });
+
+    // Per-context central (platform) routes — each context drops a file in
+    // routes/central/ and it is auto-loaded inside this central-domain group.
+    foreach ((array) glob(base_path('routes/central/*.php')) as $contextRoutes) {
+        require $contextRoutes;
+    }
 });
 
 // Auth + account-settings routes stay universal so members can sign in on their
