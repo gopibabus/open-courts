@@ -1,4 +1,4 @@
-# OpenTennis
+# Open Courts
 
 A multi-tenant SaaS for **tennis-court booking and running tournaments**. Each tenant
 is a tennis **club**; every club has its own courts, members, bookings, tournaments,
@@ -16,7 +16,7 @@ and teams, all isolated within a single shared database.
 | Frontend | Inertia + React 19 + TypeScript + Tailwind (official Laravel React starter kit) |
 | Multi-tenancy | [`stancl/tenancy`](https://tenancyforlaravel.com) — single-database, subdomain identification |
 | Roles & permissions | [`spatie/laravel-permission`](https://spatie.be/docs/laravel-permission) — teams mode, `team_id` = tenant id |
-| Dev/prod runtime | Docker (Apache + PHP-FPM-less mod_php, MySQL 8.4), supervisord (Apache + Laravel scheduler) |
+| Dev/prod runtime | Docker (Apache + mod_php), **PostgreSQL**, Redis, Mailpit; supervisord runs Apache + a queue worker |
 
 ## Architecture at a glance
 
@@ -65,14 +65,19 @@ End-to-end against the running container: `E2E_BASE_URL=http://lvh.me:8080 npx p
 
 ## Running locally without Docker
 
-The host is pre-wired for zero-config **SQLite**:
+The host runs against the same **PostgreSQL** as Docker — start just the database, then the app
+(served at <http://lvh.me:8000>, clubs at `http://<slug>.lvh.me:8000`):
 
 ```bash
 composer install
-npm install && npm run build      # or: npm run dev
+npm install && npm run build         # or: npm run dev
+docker compose up -d tennis-postgres # the database
 php artisan migrate --seed
-composer run dev                  # serves app + queue + vite + logs
+composer run dev                     # serves app + queue + vite + logs
 ```
+
+> The **test** suite is separate: it always runs on in-memory SQLite (forced by `phpunit.xml`
+> + `tests/bootstrap.php`), so `php artisan test` never touches your Postgres data.
 
 ## Demo credentials (after seeding)
 
@@ -99,11 +104,12 @@ per-club roles, the platform-admin gate bypass, and subdomain resolution.
 ## Project layout (skeleton pieces)
 
 ```
-app/Models/            Tenant, User, Court, Booking, Tournament, Team
+app/Domains/<Ctx>/     code by bounded context — Identity, Tenancy, Membership, Facilities,
+                       Booking, Tournaments, Support, Notifications (Models/Actions/Data/Events/…)
 app/Providers/         TenancyServiceProvider (single-DB + spatie team sync), AppServiceProvider (Gate::before)
-routes/web.php         central (domain-constrained) routes
-routes/tenant.php      subdomain club routes
-database/migrations/   tenancy tables, permission tables (string team_id), tennis domain stubs
+routes/web.php         central (domain-constrained) routes + universal auth/settings
+routes/tenant.php      subdomain club routes (auto-loads routes/tenant/*.php, one file per context)
+database/migrations/   tenancy tables, permission tables (string team_id), tennis domain tables
 database/seeders/      RolePermissionSeeder (role matrix), DemoSeeder
 docker/                Dockerfile, vhost.conf, supervisord.conf, start.sh, php.ini
 ```
