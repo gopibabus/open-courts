@@ -9,6 +9,7 @@ use App\Domains\Tournaments\Actions\GenerateBracket;
 use App\Domains\Tournaments\Actions\GenerateRoundRobin;
 use App\Domains\Tournaments\Enums\RegistrationStatus;
 use App\Domains\Tournaments\Enums\TournamentFormat;
+use App\Domains\Tournaments\Models\Team;
 use App\Domains\Tournaments\Models\TournamentCategory;
 use App\Domains\Tournaments\Models\TournamentMatch;
 use App\Http\Controllers\Controller;
@@ -30,7 +31,7 @@ class BracketController extends Controller
         $category->load('tournament:id,name');
 
         $matches = TournamentMatch::where('category_id', $category->id)
-            ->with(['playerOne:id,name', 'playerTwo:id,name', 'attachments'])
+            ->with(['playerOne:id,name', 'playerTwo:id,name', 'teamOne:id,name', 'teamTwo:id,name', 'attachments'])
             ->orderBy('position')
             ->get();
 
@@ -74,12 +75,12 @@ class BracketController extends Controller
 
     public function generate(TournamentCategory $category, GenerateBracket $bracket, GenerateRoundRobin $roundRobin): RedirectResponse
     {
-        $confirmed = $category->registrations()
-            ->where('status', RegistrationStatus::Confirmed->value)
-            ->count();
+        $entrants = $category->is_team
+            ? Team::where('tournament_id', $category->tournament_id)->count()
+            : $category->registrations()->where('status', RegistrationStatus::Confirmed->value)->count();
 
-        if ($confirmed < 2) {
-            return back()->withErrors(['bracket' => 'At least 2 confirmed entrants are needed to generate the draw.']);
+        if ($entrants < 2) {
+            return back()->withErrors(['bracket' => 'At least 2 entrants (or teams) are needed to generate the draw.']);
         }
 
         if ($category->format === TournamentFormat::RoundRobin) {
@@ -103,13 +104,18 @@ class BracketController extends Controller
             'id' => $match->id,
             'position' => $match->position,
             'round' => $match->round->label(),
-            'playerOne' => $match->playerOne
-                ? ['id' => $match->playerOne->id, 'name' => $match->playerOne->name, 'partner' => $partners[$match->player_one_id] ?? null]
-                : null,
-            'playerTwo' => $match->playerTwo
-                ? ['id' => $match->playerTwo->id, 'name' => $match->playerTwo->name, 'partner' => $partners[$match->player_two_id] ?? null]
-                : null,
-            'winnerId' => $match->winner_id,
+            // A side is a team (team event) or a user (with a doubles partner), whichever is set.
+            'playerOne' => $match->teamOne
+                ? ['id' => $match->teamOne->id, 'name' => $match->teamOne->name, 'partner' => null]
+                : ($match->playerOne
+                    ? ['id' => $match->playerOne->id, 'name' => $match->playerOne->name, 'partner' => $partners[$match->player_one_id] ?? null]
+                    : null),
+            'playerTwo' => $match->teamTwo
+                ? ['id' => $match->teamTwo->id, 'name' => $match->teamTwo->name, 'partner' => null]
+                : ($match->playerTwo
+                    ? ['id' => $match->playerTwo->id, 'name' => $match->playerTwo->name, 'partner' => $partners[$match->player_two_id] ?? null]
+                    : null),
+            'winnerId' => $match->winner_team_id ?? $match->winner_id,
             'score' => $match->score,
             'notes' => $match->notes,
             'status' => $match->status,

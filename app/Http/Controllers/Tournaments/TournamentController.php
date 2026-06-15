@@ -112,6 +112,7 @@ class TournamentController extends Controller
                 'name' => $c->name,
                 'type' => $c->type->value,
                 'format' => $c->format->value,
+                'is_team' => $c->is_team,
                 'max_entrants' => $c->max_entrants,
                 'entrants' => $c->registrations->map(fn ($r) => [
                     'id' => $r->id,

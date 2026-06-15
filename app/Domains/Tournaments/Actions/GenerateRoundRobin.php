@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Tournaments\Actions;
 
 use App\Domains\Tournaments\Enums\RegistrationStatus;
+use App\Domains\Tournaments\Models\Team;
 use App\Domains\Tournaments\Models\TournamentCategory;
 use App\Domains\Tournaments\Models\TournamentMatch;
 use Illuminate\Support\Facades\DB;
@@ -23,12 +24,17 @@ final class GenerateRoundRobin
         DB::transaction(function () use ($category): void {
             TournamentMatch::where('category_id', $category->id)->delete();
 
-            $entrants = $category->registrations()
-                ->where('status', RegistrationStatus::Confirmed->value)
-                ->orderByRaw('seed is null, seed')
-                ->orderBy('id')
-                ->pluck('user_id')
-                ->all();
+            $isTeam = $category->is_team;
+            [$oneCol, $twoCol] = $isTeam ? ['team_one_id', 'team_two_id'] : ['player_one_id', 'player_two_id'];
+
+            $entrants = $isTeam
+                ? Team::where('tournament_id', $category->tournament_id)->orderBy('id')->pluck('id')->all()
+                : $category->registrations()
+                    ->where('status', RegistrationStatus::Confirmed->value)
+                    ->orderByRaw('seed is null, seed')
+                    ->orderBy('id')
+                    ->pluck('user_id')
+                    ->all();
 
             $position = 0;
             $count = count($entrants);
@@ -39,8 +45,8 @@ final class GenerateRoundRobin
                         'category_id' => $category->id,
                         'round' => 'group',
                         'position' => $position++,
-                        'player_one_id' => $entrants[$i],
-                        'player_two_id' => $entrants[$j],
+                        $oneCol => $entrants[$i],
+                        $twoCol => $entrants[$j],
                         'status' => 'scheduled',
                     ]);
                 }

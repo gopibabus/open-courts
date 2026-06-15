@@ -26,12 +26,14 @@ class TournamentCategory extends Model
         'name',
         'type',
         'format',
+        'is_team',
         'max_entrants',
     ];
 
     protected $casts = [
         'type' => CategoryType::class,
         'format' => TournamentFormat::class,
+        'is_team' => 'boolean',
         'max_entrants' => 'integer',
     ];
 

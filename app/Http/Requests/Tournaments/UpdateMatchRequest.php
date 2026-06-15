@@ -25,12 +25,13 @@ class UpdateMatchRequest extends FormRequest
     public function rules(): array
     {
         $match = $this->route('match');
-        $players = $match instanceof TournamentMatch
-            ? array_values(array_filter([$match->player_one_id, $match->player_two_id]))
+        // The winner is one of the match's participants — players (singles/doubles) or teams.
+        $participants = $match instanceof TournamentMatch
+            ? array_values(array_filter([$match->player_one_id, $match->player_two_id, $match->team_one_id, $match->team_two_id]))
             : [];
 
         return [
-            'winner_id' => ['nullable', Rule::in($players)],
+            'winner_id' => ['nullable', Rule::in($participants)],
             'score' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ];

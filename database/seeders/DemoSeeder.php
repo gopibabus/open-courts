@@ -218,6 +218,13 @@ class DemoSeeder extends Seeder
                 'type' => CategoryType::Singles,
                 'format' => TournamentFormat::RoundRobin,
             ]);
+            // A team event — the tournament's squads play each other (bracket over teams).
+            TournamentCategory::create([
+                'tournament_id' => $tournament->id,
+                'name' => 'Club Teams',
+                'type' => CategoryType::Singles,
+                'is_team' => true,
+            ]);
 
             // A handful of entrants across the categories.
             foreach (['ben', 'omar', 'coach', 'owner'] as $handle) {
@@ -291,6 +298,7 @@ class DemoSeeder extends Seeder
         $open = $tournament->categories()->firstWhere('name', 'Open Singles');
         $ladder = $tournament->categories()->firstWhere('name', 'Club Ladder');
         $mixed = $tournament->categories()->firstWhere('name', 'Mixed Doubles');
+        $teamEvent = $tournament->categories()->firstWhere('name', 'Club Teams');
 
         if ($singles !== null && ! TournamentMatch::where('category_id', $singles->id)->exists()) {
             app(GenerateBracket::class)->handle($singles);
@@ -323,6 +331,15 @@ class DemoSeeder extends Seeder
         // A doubles draw (two pairs) — generated to show "Player & Partner" in the bracket.
         if ($mixed !== null && ! TournamentMatch::where('category_id', $mixed->id)->exists()) {
             app(GenerateBracket::class)->handle($mixed);
+        }
+
+        // A team bracket (squads) — the two demo teams contest a final, Aces winning.
+        if ($teamEvent !== null && ! TournamentMatch::where('category_id', $teamEvent->id)->exists()) {
+            app(GenerateBracket::class)->handle($teamEvent);
+            $final = TournamentMatch::where('category_id', $teamEvent->id)->where('round', 'final')->first();
+            if ($final !== null && $final->team_one_id !== null) {
+                app(UpdateMatchResult::class)->handle($final, (int) $final->team_one_id, '3-1', null);
+            }
         }
     }
 

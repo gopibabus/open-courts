@@ -26,6 +26,7 @@ class StoreCategoryRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', new Enum(CategoryType::class)],
             'format' => ['nullable', new Enum(TournamentFormat::class)],
+            'is_team' => ['nullable', 'boolean'],
             'max_entrants' => ['nullable', 'integer', 'min:2', 'max:1024'],
         ];
     }
@@ -38,6 +39,7 @@ class StoreCategoryRequest extends FormRequest
             format: $this->filled('format')
                 ? TournamentFormat::from((string) $this->string('format'))
                 : TournamentFormat::SingleElimination,
+            isTeam: $this->boolean('is_team'),
             maxEntrants: $this->filled('max_entrants') ? (int) $this->integer('max_entrants') : null,
         );
     }

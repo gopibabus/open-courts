@@ -36,7 +36,10 @@ class TournamentMatch extends Model
         'next_slot',
         'player_one_id',
         'player_two_id',
+        'team_one_id',
+        'team_two_id',
         'winner_id',
+        'winner_team_id',
         'score',
         'notes',
         'status',
@@ -71,6 +74,21 @@ class TournamentMatch extends Model
     public function winner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'winner_id');
+    }
+
+    public function teamOne(): BelongsTo
+    {
+        return $this->belongsTo(Team::class, 'team_one_id');
+    }
+
+    public function teamTwo(): BelongsTo
+    {
+        return $this->belongsTo(Team::class, 'team_two_id');
+    }
+
+    public function winnerTeam(): BelongsTo
+    {
+        return $this->belongsTo(Team::class, 'winner_team_id');
     }
 
     /** The bracket match this match's winner advances into (null for the final / ad-hoc results). */

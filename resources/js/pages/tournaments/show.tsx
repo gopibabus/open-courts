@@ -5,6 +5,7 @@ import { FormEventHandler, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +26,7 @@ interface Category {
     name: string;
     type: string;
     format: string;
+    is_team: boolean;
     max_entrants: number | null;
     entrants: Entrant[];
 }
@@ -95,8 +97,9 @@ interface CategoryForm {
     name: string;
     type: string;
     format: string;
+    is_team: boolean;
     max_entrants: string;
-    [key: string]: string;
+    [key: string]: string | boolean;
 }
 
 const FORMAT_OPTIONS: TypeOption[] = [
@@ -110,6 +113,7 @@ function AddCategoryDialog({ tournamentId, types }: { tournamentId: number; type
         name: '',
         type: types[0]?.value ?? 'singles',
         format: 'single_elimination',
+        is_team: false,
         max_entrants: '',
     });
 
@@ -182,6 +186,11 @@ function AddCategoryDialog({ tournamentId, types }: { tournamentId: number; type
                             </SelectContent>
                         </Select>
                         <InputError message={errors.format} />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Checkbox id="category-team" checked={data.is_team} onCheckedChange={(c) => setData('is_team', c === true)} />
+                        <Label htmlFor="category-team">Team event — the tournament’s squads play each other</Label>
                     </div>
 
                     <div className="grid gap-2">
@@ -595,7 +604,7 @@ function CategoryCard({
     const active = category.entrants.filter((e) => e.status !== 'withdrawn');
     const isOpen = tournament.status === 'open';
     const atCapacity = category.max_entrants !== null && active.length >= category.max_entrants;
-    const requiresPartner = category.type !== 'singles';
+    const requiresPartner = !category.is_team && category.type !== 'singles';
     const [registerOpen, setRegisterOpen] = useState(false);
 
     // The entrant is the current user (server-side); `partner_id` is the doubles partner.
@@ -626,17 +635,22 @@ function CategoryCard({
                             {category.type}
                         </Badge>
                         {category.format === 'round_robin' && <Badge variant="secondary">Round robin</Badge>}
+                        {category.is_team && <Badge variant="secondary">Team</Badge>}
                     </div>
-                    <p className="text-muted-foreground text-xs">
-                        <span className="text-display">{active.length}</span>
-                        {category.max_entrants !== null && (
-                            <>
-                                {' / '}
-                                <span className="text-display">{category.max_entrants}</span>
-                            </>
-                        )}{' '}
-                        entrant{active.length === 1 ? '' : 's'}
-                    </p>
+                    {category.is_team ? (
+                        <p className="text-muted-foreground text-xs">The tournament’s squads play each other.</p>
+                    ) : (
+                        <p className="text-muted-foreground text-xs">
+                            <span className="text-display">{active.length}</span>
+                            {category.max_entrants !== null && (
+                                <>
+                                    {' / '}
+                                    <span className="text-display">{category.max_entrants}</span>
+                                </>
+                            )}{' '}
+                            entrant{active.length === 1 ? '' : 's'}
+                        </p>
+                    )}
                     <Link
                         href={route('tournaments.bracket', category.id)}
                         className="text-muted-foreground hover:text-foreground inline-block text-xs"
@@ -646,6 +660,7 @@ function CategoryCard({
                 </div>
 
                 {isOpen &&
+                    !category.is_team &&
                     (requiresPartner ? (
                         <Dialog open={registerOpen} onOpenChange={setRegisterOpen}>
                             <DialogTrigger asChild>

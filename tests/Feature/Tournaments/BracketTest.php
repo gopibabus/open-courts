@@ -9,6 +9,7 @@ use App\Domains\Tournaments\Actions\UpdateMatchResult;
 use App\Domains\Tournaments\Enums\CategoryType;
 use App\Domains\Tournaments\Enums\RegistrationStatus;
 use App\Domains\Tournaments\Models\Registration;
+use App\Domains\Tournaments\Models\Team;
 use App\Domains\Tournaments\Models\Tournament;
 use App\Domains\Tournaments\Models\TournamentCategory;
 use App\Domains\Tournaments\Models\TournamentMatch;
@@ -206,6 +207,42 @@ class BracketTest extends TestCase
                 ->component('tournaments/bracket')
                 ->where('rounds.0.matches.0.playerOne.partner', $b->name)
                 ->where('rounds.0.matches.0.playerTwo.partner', $d->name));
+    }
+
+    public function test_a_team_bracket_is_drawn_over_the_tournaments_teams(): void
+    {
+        $club = $this->makeClub('alpha');
+        $admin = $this->makeMember($club, 'club-admin');
+
+        tenancy()->initialize($club);
+        $tournament = Tournament::create(['name' => 'Cup', 'status' => 'open', 'format' => 'single_elimination']);
+        $category = TournamentCategory::create(['tournament_id' => $tournament->id, 'name' => 'Club Teams', 'type' => CategoryType::Singles, 'is_team' => true]);
+        $teamA = Team::create(['tournament_id' => $tournament->id, 'name' => 'Alpha A']);
+        $teamB = Team::create(['tournament_id' => $tournament->id, 'name' => 'Alpha B']);
+
+        app(GenerateBracket::class)->handle($category);
+
+        $final = TournamentMatch::where('category_id', $category->id)->where('round', 'final')->first();
+        $this->assertNotNull($final->team_one_id, 'the final is contested by two teams');
+        $this->assertNotNull($final->team_two_id);
+        $this->assertNull($final->player_one_id, 'a team match uses team columns, not player columns');
+
+        // Recording a team winner sets winner_team_id (not winner_id).
+        app(UpdateMatchResult::class)->handle($final, (int) $teamA->id, '3-1', null);
+        $final->refresh();
+        $this->assertSame('completed', $final->status);
+        $this->assertSame($teamA->id, $final->winner_team_id);
+        $this->assertNull($final->winner_id);
+        tenancy()->end();
+
+        // The bracket page shows the team names as the sides.
+        $this->actingAs($admin)
+            ->withoutVite()
+            ->get("http://alpha.localhost/categories/{$category->id}/bracket")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('tournaments/bracket')
+                ->where('rounds.0.matches.0.playerOne.name', $teamA->name));
     }
 
     public function test_an_image_can_be_attached_to_a_match(): void

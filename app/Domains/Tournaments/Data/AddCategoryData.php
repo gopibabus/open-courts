@@ -18,5 +18,6 @@ final readonly class AddCategoryData
         public CategoryType $type,
         public ?int $maxEntrants,
         public TournamentFormat $format = TournamentFormat::SingleElimination,
+        public bool $isTeam = false,
     ) {}
 }

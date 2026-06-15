@@ -22,6 +22,7 @@ final class AddCategory
                 'name' => $data->name,
                 'type' => $data->type,
                 'format' => $data->format,
+                'is_team' => $data->isTeam,
                 'max_entrants' => $data->maxEntrants,
             ]);
         });
