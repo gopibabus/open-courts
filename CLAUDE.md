@@ -4,8 +4,14 @@ Guidance for working in this repo. Keep it current as the app grows.
 
 ## What this is
 
-Multi-tenant SaaS for tennis-court booking + tournaments. **Tenant = a tennis club.**
-Laravel 12 + Inertia/React (TS). Status: skeleton — domain models are intentionally thin.
+Multi-tenant SaaS for tennis-court booking + tournaments, branded **Open Courts**.
+**Tenant = a tennis club.** Laravel 12 + Inertia/React (TS). Status: skeleton — domain
+models are intentionally thin.
+
+App identity (name, tagline, logos, favicon, support email) is centralized in
+**`config/branding.php`** and shared to the frontend as the Inertia `branding` prop (see the
+`Logo` component + `HandleInertiaRequests`). Change branding there, not inline — there is no
+Laravel logo anywhere (`app-logo-icon` now renders the branded `<Logo>`).
 
 ## Non-negotiable conventions
 
@@ -32,13 +38,19 @@ Laravel 12 + Inertia/React (TS). Status: skeleton — domain models are intentio
   + `InitializeTenancyBySubdomain` + `PreventAccessFromCentralDomains`, with tenancy middleware
   **before** `auth`. Both `/` routes are domain-constrained so they don't shadow each other
   (Laravel keys routes by domain+URI).
-- Local URLs: `http://localhost:8080` (central), `http://<club>.localhost:8080` (club).
+- **Universal routes** (`routes/settings.php`, `routes/auth.php`) sit OUTSIDE the central-domain
+  group, so they serve on both central and club subdomains. Settings additionally runs
+  `App\Http\Middleware\InitializeTenancyForUniversalRoutes`, which initializes tenancy on a
+  club subdomain (graceful no-op centrally) so `/settings/*` carries the `club` prop and renders
+  inside the club shell.
+- Local URLs (Docker): `http://localhost:8080` (central), `http://<slug>.localhost:8080` (club).
+  Host dev / E2E use `lvh.me` instead — see the serving note under "Gotchas".
 
 ## Code layout (DDD — see ADR-0002)
 
 Code is organised by **bounded context** under `app/Domains/<Context>/` (Identity, Tenancy,
-Membership, Facilities, Booking, Tournaments, Billing, Notifications). Each context owns its
-`Models/`, `Actions/`, `Data/`, `Events/`, `Listeners/`, `Policies/`, `Exceptions/`.
+Membership, Facilities, Booking, Tournaments, Support, Billing, Notifications). Each context
+owns its `Models/`, `Actions/`, `Data/`, `Events/`, `Listeners/`, `Policies/`, `Exceptions/`.
 
 - Models live under `app/Domains/<Context>/Models/` — e.g. `App\Domains\Tenancy\Models\Tenant`,
   `App\Domains\Identity\Models\User`, `App\Domains\Facilities\Models\Court`. There is **no**
@@ -47,6 +59,30 @@ Membership, Facilities, Booking, Tournaments, Billing, Notifications). Each cont
 - Role → permission matrix: `database/seeders/RolePermissionSeeder::roleMatrix()` (user owns this).
 - Demo data: `database/seeders/DemoSeeder.php`.
 - The domain `teams` table (tournament squads) is unrelated to spatie's "teams" feature.
+- **Teams are tournament-scoped — they never exist standalone.** A team belongs to a
+  tournament (created via `tournaments.teams.store`); its roster page is reached from the
+  tournament (there is **no** `teams.index`). A member may be on **one team per tournament**
+  (DB unique on `team_player(tournament_id, user_id)` + an `AddPlayerToTeam` guard + the roster
+  picker filter). Each tournament also has its own **management / EC** (`tournament_management`).
+
+## Frontend (Inertia shell + shared props)
+
+- **Club shell:** every authenticated club page renders inside `ClubLayout` (collapsible
+  sidebar + sticky topbar) and is **full-width** (no `mx-auto max-w-*`) so it reads end-to-end
+  like the dashboard. The dashboard is a read-only aggregation; create/manage actions live in
+  the sidebar nav + per-page dialogs, not on the dashboard.
+- **Shared Inertia props** (`HandleInertiaRequests`): `auth.user` (with `is_platform_admin`
+  pinned to a real bool), `auth.clubs` (every club the user belongs to — powers the sidebar
+  **club switcher**), `club` (the active tenant, or null centrally), and `branding`
+  (`config('branding')`). The shell reads these; controllers don't re-pass the club.
+- **A member can belong to multiple clubs** — `tenant_user` has a composite unique
+  (`tenant_id`, `user_id`), not a unique `user_id`. The sidebar footer becomes a switcher when
+  `auth.clubs.length > 1`.
+- **Account settings render in the club shell on a subdomain** (see Routing): `SettingsPageLayout`
+  wraps `/settings/*` in `ClubLayout` when the `club` prop is present, else `AppLayout`.
+- **Help / Support slice:** `/help` (in the club shell) → `SupportRequest` (tenant-scoped) →
+  `SubmitSupportRequest` → `SupportRequestSubmitted` (after commit) → queued
+  `SendSupportRequestNotification` mails `config('branding.support_email')`.
 
 ## Commands
 
@@ -58,8 +94,10 @@ docker compose up --build                 # full stack (app=Apache, db=Postgres,
 npm run build                             # required before Inertia HTTP tests render HTML
 ```
 
-App runs at **http://lvh.me:8000** (host dev) / **http://lvh.me:8080** (Docker); clubs at `<slug>.lvh.me`.
-Run the full E2E against the Docker container with `E2E_BASE_URL=http://lvh.me:8080 npx playwright test`.
+Local URLs — **Docker (default): `http://localhost:8080`** (clubs `http://<slug>.localhost:8080`);
+**host dev: `http://lvh.me:8000`** (clubs `http://<slug>.lvh.me:8000`). Playwright drives host
+`artisan serve` on `lvh.me:8000` (its specs assume `*.lvh.me`); the Docker container is for manual
+browsing on `localhost:8080`. See the serving note under "Gotchas".
 
 ## Docker (must stay true)
 
@@ -84,9 +122,17 @@ thin Controller + FormRequest → shadcn UI page → **Pest feature test + Playw
 
 ## More gotchas (learned the hard way)
 
-- **Local subdomains use `lvh.me`, not `localhost`.** `*.localhost` can't share the session
-  cookie across subdomains; `*.lvh.me` resolves to 127.0.0.1 and shares cookies. Set
-  `CENTRAL_DOMAIN` / `SESSION_DOMAIN` / `APP_URL` to lvh.me locally.
+- **Two local-serving setups — pick by cookie needs:**
+  - **Docker (default) → `localhost`.** `docker-compose.yml` sets `CENTRAL_DOMAIN=localhost`,
+    `APP_URL=http://localhost:8080`, `SESSION_DOMAIN=null`. `*.localhost` resolves to 127.0.0.1
+    (macOS), so clubs live at `http://<slug>.localhost:8080`. Because `SESSION_DOMAIN=null` the
+    session cookie is **host-only** — so **log in directly on the club subdomain**; a login on
+    `localhost` is NOT shared to `<slug>.localhost`.
+  - **Host dev / E2E → `lvh.me`.** The host `.env` sets `CENTRAL_DOMAIN=SESSION_DOMAIN=lvh.me`
+    and `APP_URL=http://lvh.me:8000`; `*.lvh.me` resolves to 127.0.0.1 and `SESSION_DOMAIN=lvh.me`
+    **shares** the cookie across subdomains (one login works everywhere). Playwright uses this.
+  - Either domain works for subdomain identification because `config('tenancy.central_domains')`
+    lists `localhost`, `127.0.0.1` **and** `env('CENTRAL_DOMAIN')`.
 - **Tests pin to `localhost`** via `phpunit.xml` (`APP_URL=http://localhost`,
   `CENTRAL_DOMAIN=localhost`) so domain-constrained central routes resolve under relative-path
   requests. Keep those two in sync if you change central routing.
@@ -119,7 +165,10 @@ thin Controller + FormRequest → shadcn UI page → **Pest feature test + Playw
 - A `DEPRECATED: Accessing static trait property ... BelongsToTenant::$tenantIdColumn` notice
   comes from stancl/tenancy 3.10 on PHP 8.4. Harmless; silenced when `APP_DEBUG=false`.
 - Inertia feature tests need either a built Vite manifest or `$this->withoutVite()`.
-- Host vs container DB: host uses SQLite (`.env`); the container overrides to MySQL via
-  `docker-compose.yml`'s `environment:` (Laravel's immutable dotenv won't clobber real env vars).
+- Host vs container DB: both run **Postgres** — the host via `.env` (`DB_CONNECTION=pgsql`, db
+  `open_tennis`, start it with `docker compose up -d tennis-postgres`), the container via
+  `docker-compose.yml`'s `environment:` pointing at the `tennis-postgres` service (Laravel's
+  immutable dotenv won't clobber those real env vars). The **test** suite ignores both and runs
+  on in-memory SQLite, forced by `phpunit.xml` + `tests/bootstrap.php`.
 - `team_player` pivot rows need `tenant_id` passed explicitly on `attach()` (attach bypasses
   model events, so `BelongsToTenant` can't auto-fill it).
