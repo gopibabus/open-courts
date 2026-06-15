@@ -8,6 +8,7 @@ use App\Domains\Booking\Models\Booking;
 use App\Domains\Facilities\Models\Court;
 use App\Domains\Facilities\Models\CourtAvailability;
 use App\Domains\Identity\Models\User;
+use App\Domains\Support\Models\SupportRequest;
 use App\Domains\Tenancy\Models\Tenant;
 use App\Domains\Tournaments\Enums\CategoryType;
 use App\Domains\Tournaments\Enums\RegistrationStatus;
@@ -53,6 +54,7 @@ class DemoSeeder extends Seeder
         $courts = $this->seedCourts();
         $this->seedBookings($courts, $members);
         $this->seedTournament($members);
+        $this->seedSupportRequests($members);
 
         tenancy()->end();
     }
@@ -229,6 +231,35 @@ class DemoSeeder extends Seeder
         // The tournament's EC (management) — the club members running it.
         foreach (['owner', 'coach'] as $handle) {
             $tournament->management()->attach($members[$handle]->id, ['tenant_id' => $tournament->tenant_id]);
+        }
+    }
+
+    /**
+     * A few help-desk requests so the support inbox / Help feature has demo data — an open
+     * one and a resolved one across different topics.
+     *
+     * @param  array<string, User>  $members
+     */
+    private function seedSupportRequests(array $members): void
+    {
+        if (SupportRequest::query()->exists()) {
+            return; // already seeded — keep idempotent
+        }
+
+        $requests = [
+            ['handle' => 'alice', 'category' => 'booking', 'subject' => 'Cannot cancel my Tuesday booking', 'message' => 'The cancel button on my 7pm Court 2 booking does nothing — could you remove it for me?', 'status' => 'open'],
+            ['handle' => 'ben', 'category' => 'courts', 'subject' => 'Court 3 net needs tightening', 'message' => 'The net on Court 3 is sagging in the middle. Can maintenance take a look before the weekend?', 'status' => 'open'],
+            ['handle' => 'chloe', 'category' => 'tournaments', 'subject' => 'How do I join a team?', 'message' => 'I registered for Mixed Doubles but I am not sure how to get added to a squad — any pointers?', 'status' => 'closed'],
+        ];
+
+        foreach ($requests as $r) {
+            SupportRequest::create([
+                'user_id' => $members[$r['handle']]->id,
+                'category' => $r['category'],
+                'subject' => $r['subject'],
+                'message' => $r['message'],
+                'status' => $r['status'],
+            ]);
         }
     }
 }
