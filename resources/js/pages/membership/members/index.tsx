@@ -1,4 +1,4 @@
-import { router, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
@@ -134,7 +134,9 @@ export default function MembersIndex({ members, pendingInvitations, roles, can }
                         {members.map((member) => (
                             <li key={member.id} className="flex items-center justify-between gap-4 px-4 py-3">
                                 <div className="min-w-0">
-                                    <p className="truncate font-medium">{member.name}</p>
+                                    <Link href={route('membership.members.show', member.id)} className="truncate font-medium hover:underline">
+                                        {member.name}
+                                    </Link>
                                     <p className="text-muted-foreground truncate text-sm">{member.email}</p>
                                 </div>
 

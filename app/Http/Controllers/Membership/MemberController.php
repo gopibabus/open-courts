@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Membership;
 
 use App\Domains\Identity\Models\User;
 use App\Domains\Membership\Actions\AssignMemberRole;
+use App\Domains\Membership\Actions\BuildPlayerProfile;
 use App\Domains\Membership\Models\Invitation;
 use App\Domains\Tenancy\Models\Tenant;
 use App\Http\Controllers\Controller;
@@ -67,6 +68,22 @@ class MemberController extends Controller
             'can' => [
                 'manageMembers' => $request->user()?->can('member.manage') ?? false,
             ],
+        ]);
+    }
+
+    /**
+     * A member's player profile: bio + activity, competitive record and trophy case.
+     * Any authenticated club member may view a fellow member's profile.
+     */
+    public function show(User $member, BuildPlayerProfile $buildProfile): Response
+    {
+        /** @var Tenant $club */
+        $club = tenant();
+
+        abort_unless($club->users()->whereKey($member->id)->exists(), 404);
+
+        return Inertia::render('membership/members/show', [
+            'profile' => $buildProfile->handle($club, $member),
         ]);
     }
 

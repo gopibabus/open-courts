@@ -15,6 +15,7 @@ use App\Domains\Tournaments\Enums\RegistrationStatus;
 use App\Domains\Tournaments\Models\Team;
 use App\Domains\Tournaments\Models\Tournament;
 use App\Domains\Tournaments\Models\TournamentCategory;
+use App\Domains\Tournaments\Models\TournamentMatch;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -180,57 +181,94 @@ class DemoSeeder extends Seeder
             ],
         );
 
-        if ($tournament->categories()->exists()) {
-            return; // already seeded
-        }
+        // Categories + entrants/teams/EC are created once. Match results are seeded
+        // afterwards (idempotently) so they can be added to an already-seeded demo too.
+        $singles = $tournament->categories()->firstWhere('name', "Men's Singles");
 
-        $singles = TournamentCategory::create([
-            'tournament_id' => $tournament->id,
-            'name' => "Men's Singles",
-            'type' => CategoryType::Singles,
-            'max_entrants' => 16,
-        ]);
-        $mixed = TournamentCategory::create([
-            'tournament_id' => $tournament->id,
-            'name' => 'Mixed Doubles',
-            'type' => CategoryType::Mixed,
-            'max_entrants' => 8,
-        ]);
-
-        // A handful of entrants across the two categories.
-        foreach (['ben', 'omar', 'coach', 'owner'] as $handle) {
-            $singles->registrations()->create([
+        if ($singles === null) {
+            $singles = TournamentCategory::create([
                 'tournament_id' => $tournament->id,
-                'user_id' => $members[$handle]->id,
-                'status' => RegistrationStatus::Confirmed,
+                'name' => "Men's Singles",
+                'type' => CategoryType::Singles,
+                'max_entrants' => 16,
             ]);
-        }
-        foreach (['alice', 'chloe'] as $handle) {
-            $mixed->registrations()->create([
+            $mixed = TournamentCategory::create([
                 'tournament_id' => $tournament->id,
-                'user_id' => $members[$handle]->id,
-                'status' => RegistrationStatus::Confirmed,
+                'name' => 'Mixed Doubles',
+                'type' => CategoryType::Mixed,
+                'max_entrants' => 8,
             ]);
-        }
 
-        // Two squads for the tournament, each with a couple of club members.
-        $squads = [
-            'Aces' => ['ben', 'omar'],
-            'Smashers' => ['alice', 'chloe'],
-        ];
-        foreach ($squads as $name => $handles) {
-            $team = Team::create(['tournament_id' => $tournament->id, 'name' => $name]);
-            foreach ($handles as $handle) {
-                $team->players()->attach($members[$handle]->id, [
-                    'tenant_id' => $team->tenant_id,
+            // A handful of entrants across the two categories.
+            foreach (['ben', 'omar', 'coach', 'owner'] as $handle) {
+                $singles->registrations()->create([
                     'tournament_id' => $tournament->id,
+                    'user_id' => $members[$handle]->id,
+                    'status' => RegistrationStatus::Confirmed,
                 ]);
+            }
+            foreach (['alice', 'chloe'] as $handle) {
+                $mixed->registrations()->create([
+                    'tournament_id' => $tournament->id,
+                    'user_id' => $members[$handle]->id,
+                    'status' => RegistrationStatus::Confirmed,
+                ]);
+            }
+
+            // Two squads for the tournament, each with a couple of club members.
+            $squads = [
+                'Aces' => ['ben', 'omar'],
+                'Smashers' => ['alice', 'chloe'],
+            ];
+            foreach ($squads as $name => $handles) {
+                $team = Team::create(['tournament_id' => $tournament->id, 'name' => $name]);
+                foreach ($handles as $handle) {
+                    $team->players()->attach($members[$handle]->id, [
+                        'tenant_id' => $team->tenant_id,
+                        'tournament_id' => $tournament->id,
+                    ]);
+                }
+            }
+
+            // The tournament's EC (management) — the club members running it.
+            foreach (['owner', 'coach'] as $handle) {
+                $tournament->management()->attach($members[$handle]->id, ['tenant_id' => $tournament->tenant_id]);
             }
         }
 
-        // The tournament's EC (management) — the club members running it.
-        foreach (['owner', 'coach'] as $handle) {
-            $tournament->management()->attach($members[$handle]->id, ['tenant_id' => $tournament->tenant_id]);
+        // A finished Men's Singles draw, so player profiles show real records + trophies.
+        $this->seedMatches($tournament, $singles, $members);
+    }
+
+    /**
+     * Seed a completed Men's Singles draw — two semis and a final. Ben wins the title,
+     * Coach is runner-up, Omar + Owner are semi-finalists.
+     *
+     * @param  array<string, User>  $members
+     */
+    private function seedMatches(Tournament $tournament, TournamentCategory $category, array $members): void
+    {
+        if (TournamentMatch::query()->exists()) {
+            return; // already seeded — keep idempotent
+        }
+
+        $results = [
+            ['round' => 'semi_final', 'winner' => 'ben', 'loser' => 'omar', 'score' => '6-3 6-4'],
+            ['round' => 'semi_final', 'winner' => 'coach', 'loser' => 'owner', 'score' => '7-5 6-4'],
+            ['round' => 'final', 'winner' => 'ben', 'loser' => 'coach', 'score' => '6-4 3-6 6-2'],
+        ];
+
+        foreach ($results as $r) {
+            TournamentMatch::create([
+                'tournament_id' => $tournament->id,
+                'category_id' => $category->id,
+                'round' => $r['round'],
+                'player_one_id' => $members[$r['winner']]->id,
+                'player_two_id' => $members[$r['loser']]->id,
+                'winner_id' => $members[$r['winner']]->id,
+                'score' => $r['score'],
+                'played_at' => Carbon::now()->subDays(2),
+            ]);
         }
     }
 

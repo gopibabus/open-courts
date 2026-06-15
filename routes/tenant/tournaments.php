@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Tournaments\CategoryController;
 use App\Http\Controllers\Tournaments\ManagementController;
+use App\Http\Controllers\Tournaments\MatchController;
 use App\Http\Controllers\Tournaments\RegistrationController;
 use App\Http\Controllers\Tournaments\TeamController;
 use App\Http\Controllers\Tournaments\TournamentController;
@@ -46,6 +47,12 @@ Route::middleware('auth')->group(function () {
             ->name('tournaments.management.store');
         Route::delete('tournaments/{tournament}/management/{user}', [ManagementController::class, 'destroy'])
             ->name('tournaments.management.destroy');
+
+        // Match results — record who beat whom (drives players' competitive records + trophies).
+        Route::post('tournaments/{tournament}/matches', [MatchController::class, 'store'])
+            ->name('tournaments.matches.store');
+        Route::delete('matches/{match}', [MatchController::class, 'destroy'])
+            ->name('tournaments.matches.destroy');
     });
 
     // Create a team within a tournament — requires the club-scoped `team.manage` permission.

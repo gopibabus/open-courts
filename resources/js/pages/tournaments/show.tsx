@@ -55,6 +55,22 @@ interface MemberRef {
     name: string;
 }
 
+interface MatchRow {
+    id: number;
+    category: string | null;
+    round: string;
+    playerOne: string | null;
+    playerTwo: string | null;
+    playerOneId: number;
+    winnerId: number;
+    score: string | null;
+}
+
+interface RoundOption {
+    value: string;
+    label: string;
+}
+
 interface ShowTournamentProps {
     tournament: Tournament;
     categories: Category[];
@@ -62,6 +78,9 @@ interface ShowTournamentProps {
     teams: TeamRow[];
     management: MemberRef[];
     availableManagers: MemberRef[];
+    matches: MatchRow[];
+    matchRounds: RoundOption[];
+    clubMembers: MemberRef[];
     canManage: boolean;
     canManageTeams: boolean;
 }
@@ -340,6 +359,190 @@ function AddManagerDialog({ tournamentId, members }: { tournamentId: number; mem
     );
 }
 
+interface MatchForm {
+    category_id: string;
+    round: string;
+    player_one_id: string;
+    player_two_id: string;
+    winner_id: string;
+    score: string;
+    [key: string]: string;
+}
+
+function RecordResultDialog({
+    tournamentId,
+    categories,
+    rounds,
+    members,
+}: {
+    tournamentId: number;
+    categories: Category[];
+    rounds: RoundOption[];
+    members: MemberRef[];
+}) {
+    const [open, setOpen] = useState(false);
+    const { data, setData, post, processing, errors, reset } = useForm<MatchForm>({
+        category_id: categories[0] ? String(categories[0].id) : '',
+        round: rounds.find((r) => r.value === 'final')?.value ?? rounds[0]?.value ?? '',
+        player_one_id: '',
+        player_two_id: '',
+        winner_id: '',
+        score: '',
+    });
+
+    // Picking a player clears the winner if it's no longer one of the two.
+    const pickPlayer = (slot: 'player_one_id' | 'player_two_id', value: string) => {
+        setData((prev) => {
+            const next = { ...prev, [slot]: value };
+            if (next.winner_id && next.winner_id !== next.player_one_id && next.winner_id !== next.player_two_id) {
+                next.winner_id = '';
+            }
+            return next;
+        });
+    };
+
+    const winnerOptions = members.filter((m) => String(m.id) === data.player_one_id || String(m.id) === data.player_two_id);
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        post(route('tournaments.matches.store', tournamentId), {
+            preserveScroll: true,
+            onSuccess: () => {
+                reset();
+                setOpen(false);
+            },
+        });
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                    <Plus /> Record result
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <form onSubmit={submit} className="space-y-4">
+                    <DialogHeader>
+                        <DialogTitle>Record a result</DialogTitle>
+                        <DialogDescription>A completed singles match — it builds both players' competitive records.</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-2">
+                            <Label htmlFor="match-category">Category</Label>
+                            <Select value={data.category_id} onValueChange={(v) => setData('category_id', v)}>
+                                <SelectTrigger id="match-category">
+                                    <SelectValue placeholder="Category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {categories.map((c) => (
+                                        <SelectItem key={c.id} value={String(c.id)}>
+                                            {c.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.category_id} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="match-round">Round</Label>
+                            <Select value={data.round} onValueChange={(v) => setData('round', v)}>
+                                <SelectTrigger id="match-round">
+                                    <SelectValue placeholder="Round" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {rounds.map((r) => (
+                                        <SelectItem key={r.value} value={r.value}>
+                                            {r.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.round} />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-2">
+                            <Label htmlFor="match-p1">Player one</Label>
+                            <Select value={data.player_one_id} onValueChange={(v) => pickPlayer('player_one_id', v)}>
+                                <SelectTrigger id="match-p1">
+                                    <SelectValue placeholder="Player" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {members
+                                        .filter((m) => String(m.id) !== data.player_two_id)
+                                        .map((m) => (
+                                            <SelectItem key={m.id} value={String(m.id)}>
+                                                {m.name}
+                                            </SelectItem>
+                                        ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.player_one_id} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="match-p2">Player two</Label>
+                            <Select value={data.player_two_id} onValueChange={(v) => pickPlayer('player_two_id', v)}>
+                                <SelectTrigger id="match-p2">
+                                    <SelectValue placeholder="Player" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {members
+                                        .filter((m) => String(m.id) !== data.player_one_id)
+                                        .map((m) => (
+                                            <SelectItem key={m.id} value={String(m.id)}>
+                                                {m.name}
+                                            </SelectItem>
+                                        ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.player_two_id} />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-2">
+                            <Label htmlFor="match-winner">Winner</Label>
+                            <Select value={data.winner_id} onValueChange={(v) => setData('winner_id', v)}>
+                                <SelectTrigger id="match-winner">
+                                    <SelectValue placeholder="Winner" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {winnerOptions.map((m) => (
+                                        <SelectItem key={m.id} value={String(m.id)}>
+                                            {m.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.winner_id} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="match-score">Score (optional)</Label>
+                            <Input
+                                id="match-score"
+                                value={data.score}
+                                onChange={(e) => setData('score', e.target.value)}
+                                placeholder="6-4 6-2"
+                                maxLength={50}
+                            />
+                            <InputError message={errors.score} />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button type="submit" disabled={processing || !data.player_one_id || !data.player_two_id || !data.winner_id}>
+                            Record result
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function statusVariant(status: string): 'secondary' | 'outline' | 'default' {
     if (status === 'open') return 'default';
     if (status === 'completed') return 'outline';
@@ -440,6 +643,9 @@ export default function ShowTournament({
     teams,
     management,
     availableManagers,
+    matches,
+    matchRounds,
+    clubMembers,
     canManage,
     canManageTeams,
 }: ShowTournamentProps) {
@@ -555,6 +761,54 @@ export default function ShowTournament({
                                     )}
                                 </li>
                             ))}
+                        </ul>
+                    )}
+                </section>
+
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Results</h2>
+                        {canManage && categories.length > 0 && (
+                            <RecordResultDialog tournamentId={tournament.id} categories={categories} rounds={matchRounds} members={clubMembers} />
+                        )}
+                    </div>
+                    <p className="text-muted-foreground text-xs">Recorded match results build each player's competitive record and trophies.</p>
+                    {matches.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">
+                            No results recorded yet.{canManage ? ' Record one once matches are played.' : ''}
+                        </p>
+                    ) : (
+                        <ul className="divide-border divide-y">
+                            {matches.map((m) => {
+                                const winnerName = m.winnerId === m.playerOneId ? m.playerOne : m.playerTwo;
+                                const loserName = m.winnerId === m.playerOneId ? m.playerTwo : m.playerOne;
+                                return (
+                                    <li key={m.id} className="flex items-center justify-between gap-4 py-3 text-sm">
+                                        <span className="min-w-0">
+                                            <span className="font-medium">{winnerName}</span>
+                                            <span className="text-muted-foreground"> def. {loserName}</span>
+                                            <span className="text-muted-foreground text-xs">
+                                                {' '}
+                                                · {m.round} · {m.category}
+                                            </span>
+                                        </span>
+                                        <span className="flex shrink-0 items-center gap-3">
+                                            {m.score && <span className="text-display text-muted-foreground">{m.score}</span>}
+                                            {canManage && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        router.delete(route('tournaments.matches.destroy', m.id), { preserveScroll: true })
+                                                    }
+                                                    className="text-muted-foreground hover:text-destructive text-xs"
+                                                >
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </span>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     )}
                 </section>

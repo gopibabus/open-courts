@@ -58,6 +58,14 @@ class Tournament extends Model
     }
 
     /**
+     * Recorded match results within this tournament (the source of players' records).
+     */
+    public function matches(): HasMany
+    {
+        return $this->hasMany(TournamentMatch::class);
+    }
+
+    /**
      * The tournament's management — the EC (executive committee). Club members who run
      * THIS tournament; the set can differ from tournament to tournament. Pass tenant_id
      * when attaching (attach() bypasses model events).

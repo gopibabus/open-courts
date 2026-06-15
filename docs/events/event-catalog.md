@@ -18,6 +18,7 @@ document — every feature slice adds its events here.
 | `TeamCreated` | Tournaments | A team (squad) is created | — |
 | `PlayerAddedToTeam` | Tournaments | A member is added to a team roster | — |
 | `PlayerRemovedFromTeam` | Tournaments | A member is removed from a roster | — |
+| `MatchRecorded` | Tournaments | A match result is recorded (after commit) | — |
 | `ManagerAddedToTournament` | Tournaments | A member is added to a tournament's management (EC) | — |
 | `ManagerRemovedFromTournament` | Tournaments | A member is removed from a tournament's management | — |
 | `BookingRequested` | Booking | A booking is requested | — |

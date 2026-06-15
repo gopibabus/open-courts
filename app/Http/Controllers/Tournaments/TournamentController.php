@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Tournaments;
 use App\Domains\Tournaments\Actions\CreateTournament;
 use App\Domains\Tournaments\Actions\OpenRegistration;
 use App\Domains\Tournaments\Enums\CategoryType;
+use App\Domains\Tournaments\Enums\MatchRound;
 use App\Domains\Tournaments\Enums\TournamentFormat;
 use App\Domains\Tournaments\Models\Tournament;
 use App\Http\Controllers\Controller;
@@ -89,6 +90,10 @@ class TournamentController extends Controller
             'categories.registrations.partner:id,name',
             'teams' => fn ($q) => $q->withCount('players')->orderBy('name'),
             'management:id,name',
+            'matches' => fn ($q) => $q->orderByDesc('played_at'),
+            'matches.playerOne:id,name',
+            'matches.playerTwo:id,name',
+            'matches.category:id,name',
         ]);
 
         return Inertia::render('tournaments/show', [
@@ -129,6 +134,26 @@ class TournamentController extends Controller
             // Club members not yet on the EC — the "add to management" picker.
             'availableManagers' => tenant()->users()
                 ->whereNotIn('users.id', $tournament->management->pluck('id'))
+                ->orderBy('name')
+                ->get(['users.id', 'users.name'])
+                ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
+                ->values(),
+            // Recorded match results (newest first) — shown to everyone; the record form is gated.
+            'matches' => $tournament->matches->map(fn ($m) => [
+                'id' => $m->id,
+                'category' => $m->category?->name,
+                'round' => $m->round->label(),
+                'playerOne' => $m->playerOne?->name,
+                'playerTwo' => $m->playerTwo?->name,
+                'playerOneId' => $m->player_one_id,
+                'winnerId' => $m->winner_id,
+                'score' => $m->score,
+            ])->values(),
+            'matchRounds' => collect(MatchRound::cases())
+                ->map(fn (MatchRound $r) => ['value' => $r->value, 'label' => $r->label()])
+                ->values(),
+            // Club members for the record-result pickers (any member can be a player).
+            'clubMembers' => tenant()->users()
                 ->orderBy('name')
                 ->get(['users.id', 'users.name'])
                 ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])

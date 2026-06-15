@@ -25,6 +25,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth')->group(function () {
     // Member directory + role management.
     Route::get('members', [MemberController::class, 'index'])->name('membership.members.index');
+    // A member's player profile (competitive record + trophies). Any club member may view.
+    Route::get('members/{member}', [MemberController::class, 'show'])->name('membership.members.show');
     Route::patch('members/{member}', [MemberController::class, 'update'])->name('membership.members.update');
 
     // Invitations (list + send) — gated by member.manage in InviteMemberRequest.
