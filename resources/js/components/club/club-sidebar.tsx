@@ -5,7 +5,6 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarGroup,
-    SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
@@ -51,8 +50,8 @@ export function ClubSidebar() {
                 {initial}
             </span>
             <span className="grid flex-1 text-left leading-tight">
-                <span className="truncate font-medium">{club?.name ?? 'Club'}</span>
-                <span className="text-muted-foreground truncate text-xs">{canSwitch ? 'Switch club' : 'Club workspace'}</span>
+                <span className="truncate font-medium">{club?.name ?? 'Open Courts'}</span>
+                <span className="text-muted-foreground truncate text-xs">{canSwitch ? 'Switch workspace' : 'Workspace'}</span>
             </span>
             {canSwitch && <ChevronsUpDown className="text-muted-foreground ml-auto size-4" />}
         </>
@@ -63,9 +62,16 @@ export function ClubSidebar() {
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={route('tenant.dashboard')}>
-                                <Logo className="h-8 w-auto" />
+                        <SidebarMenuButton size="lg" asChild className="group-data-[collapsible=icon]:!p-0">
+                            <Link href={route('tenant.dashboard')} aria-label={club?.name ?? 'Open Courts'}>
+                                {/* Expanded: the brand wordmark. The source PNGs are padded squares, so
+                                    object-cover crops to the centre band where the wordmark sits — otherwise
+                                    height-sizing a 500×500 canvas shrinks the actual mark to a few pixels. */}
+                                <Logo className="h-9 w-full rounded-sm object-cover object-center group-data-[collapsible=icon]:hidden" />
+                                {/* Collapsed icon rail: a compact square mark. */}
+                                <span className="bg-sidebar-primary text-sidebar-primary-foreground hidden aspect-square size-8 items-center justify-center rounded-md text-sm font-semibold group-data-[collapsible=icon]:flex">
+                                    {initial}
+                                </span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -74,7 +80,6 @@ export function ClubSidebar() {
 
             <SidebarContent>
                 <SidebarGroup className="px-2 py-0">
-                    <SidebarGroupLabel>Club</SidebarGroupLabel>
                     <SidebarMenu>
                         {nav.map((item) => (
                             <SidebarMenuItem key={item.title}>
@@ -96,7 +101,7 @@ export function ClubSidebar() {
                         {canSwitch ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <SidebarMenuButton size="lg" tooltip={club?.name ?? 'Club'}>
+                                    <SidebarMenuButton size="lg" tooltip={club?.name ?? 'Open Courts'}>
                                         {identity}
                                     </SidebarMenuButton>
                                 </DropdownMenuTrigger>
@@ -113,7 +118,7 @@ export function ClubSidebar() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         ) : (
-                            <SidebarMenuButton size="lg" tooltip={club?.name ?? 'Club'}>
+                            <SidebarMenuButton size="lg" tooltip={club?.name ?? 'Open Courts'}>
                                 {identity}
                             </SidebarMenuButton>
                         )}
