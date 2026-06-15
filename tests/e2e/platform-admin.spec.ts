@@ -31,5 +31,10 @@ test.describe('Platform admin guard', () => {
         // so we arrive authenticated — but as a non-admin, EnsurePlatformAdmin returns 403.
         const response = await page.goto('/admin/clubs');
         expect(response?.status()).toBe(403);
+
+        // The console link must also stay hidden in the central nav for non-admins:
+        // is_platform_admin is shared as false, so AppSidebar never renders the entry.
+        await page.goto('/dashboard');
+        await expect(page.getByRole('link', { name: 'Platform admin' })).toHaveCount(0);
     });
 });

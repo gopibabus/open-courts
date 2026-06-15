@@ -2,12 +2,12 @@ import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { type NavItem, type SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
+import { BookOpen, Folder, LayoutGrid, ShieldCheck } from 'lucide-react';
 import AppLogo from './app-logo';
 
-const mainNavItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         url: '/dashboard',
@@ -29,6 +29,16 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage<SharedData>().props;
+
+    // The platform-admin console (/admin/clubs) is for super-admins only. The is_platform_admin
+    // flag is shared from HandleInertiaRequests as a guaranteed boolean — false for everyone but
+    // real admins — so non-admins never get the link rendered (and the route is independently
+    // guarded server-side by EnsurePlatformAdmin regardless).
+    const mainNavItems: NavItem[] = auth.user.is_platform_admin
+        ? [...baseNavItems, { title: 'Platform admin', url: route('platform.clubs.index'), icon: ShieldCheck }]
+        : baseNavItems;
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>

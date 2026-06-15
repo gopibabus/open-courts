@@ -139,6 +139,32 @@ class PlatformAdminTest extends TestCase
         $this->assertSame(['beta'], Tenant::suspended()->pluck('slug')->all());
     }
 
+    public function test_is_platform_admin_flag_is_shared_to_the_frontend_for_an_admin(): void
+    {
+        $response = $this->withoutVite()
+            ->actingAs($this->platformAdmin())
+            ->get('http://localhost/dashboard');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('auth.user.is_platform_admin', true)
+        );
+    }
+
+    public function test_is_platform_admin_flag_is_false_and_not_leaked_for_a_normal_user(): void
+    {
+        $user = User::factory()->create(); // NOT a platform admin
+
+        $response = $this->withoutVite()
+            ->actingAs($user)
+            ->get('http://localhost/dashboard');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('auth.user.is_platform_admin', false)
+        );
+    }
+
     public function test_a_non_platform_admin_is_forbidden_from_the_admin_area(): void
     {
         $this->makeClub('alpha');
