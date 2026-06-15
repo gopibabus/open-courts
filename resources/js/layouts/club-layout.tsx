@@ -1,6 +1,7 @@
 import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { ClubSidebar } from '@/components/club/club-sidebar';
+import { CommandPalette } from '@/components/club/command-palette';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -8,7 +9,7 @@ import { UserMenuContent } from '@/components/user-menu-content';
 import { useInitials } from '@/hooks/use-initials';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ChevronDown, CircleHelp, Search } from 'lucide-react';
+import { ChevronDown, CircleHelp } from 'lucide-react';
 
 /**
  * The shared club workspace shell: collapsible sidebar + sticky topbar, wrapping
@@ -27,13 +28,9 @@ export default function ClubLayout({ title, children }: { title?: string; childr
                 <header className="border-border bg-background/80 sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b px-4 backdrop-blur md:px-6">
                     <SidebarTrigger className="-ml-1" />
 
-                    {/* Search — visual placeholder for now; club-wide search is a later slice.
+                    {/* Cmd/Ctrl+K command palette — navigates to any club feature.
                         The page title lives in each page's own content <h1>, not here (one h1 per page). */}
-                    <div className="border-border text-muted-foreground ml-2 hidden items-center gap-2 rounded-md border px-3 py-1.5 text-sm md:flex lg:w-72">
-                        <Search className="size-4" />
-                        <span className="flex-1">Search</span>
-                        <kbd className="border-border rounded border px-1.5 text-[10px]">⌘F</kbd>
-                    </div>
+                    <CommandPalette />
 
                     <div className="ml-auto flex items-center gap-2">
                         <ThemeToggle />
