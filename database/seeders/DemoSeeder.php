@@ -11,9 +11,11 @@ use App\Domains\Identity\Models\User;
 use App\Domains\Support\Models\SupportRequest;
 use App\Domains\Tenancy\Models\Tenant;
 use App\Domains\Tournaments\Actions\GenerateBracket;
+use App\Domains\Tournaments\Actions\GenerateRoundRobin;
 use App\Domains\Tournaments\Actions\UpdateMatchResult;
 use App\Domains\Tournaments\Enums\CategoryType;
 use App\Domains\Tournaments\Enums\RegistrationStatus;
+use App\Domains\Tournaments\Enums\TournamentFormat;
 use App\Domains\Tournaments\Models\Team;
 use App\Domains\Tournaments\Models\Tournament;
 use App\Domains\Tournaments\Models\TournamentCategory;
@@ -209,6 +211,13 @@ class DemoSeeder extends Seeder
                 'type' => CategoryType::Singles,
                 'max_entrants' => 16,
             ]);
+            // A round-robin group so the demo has a standings table.
+            $ladder = TournamentCategory::create([
+                'tournament_id' => $tournament->id,
+                'name' => 'Club Ladder',
+                'type' => CategoryType::Singles,
+                'format' => TournamentFormat::RoundRobin,
+            ]);
 
             // A handful of entrants across the categories.
             foreach (['ben', 'omar', 'coach', 'owner'] as $handle) {
@@ -227,6 +236,13 @@ class DemoSeeder extends Seeder
             }
             foreach (['ben', 'omar', 'coach', 'owner', 'alice', 'chloe', 'nina', 'raj'] as $handle) {
                 $open->registrations()->create([
+                    'tournament_id' => $tournament->id,
+                    'user_id' => $members[$handle]->id,
+                    'status' => RegistrationStatus::Confirmed,
+                ]);
+            }
+            foreach (['ben', 'omar', 'coach', 'owner'] as $handle) {
+                $ladder->registrations()->create([
                     'tournament_id' => $tournament->id,
                     'user_id' => $members[$handle]->id,
                     'status' => RegistrationStatus::Confirmed,
@@ -257,7 +273,8 @@ class DemoSeeder extends Seeder
         // Generate the demo brackets: a played-out Men's Singles (Ben champion → drives the
         // profile demo) and an 8-player Open Singles draw left to be played.
         $open = $tournament->categories()->firstWhere('name', 'Open Singles');
-        $this->seedBrackets($singles, $open, $members);
+        $ladder = $tournament->categories()->firstWhere('name', 'Club Ladder');
+        $this->seedBrackets($singles, $open, $ladder, $members);
     }
 
     /**
@@ -266,10 +283,11 @@ class DemoSeeder extends Seeder
      * Men's Singles has 4 entrants (ben, omar, coach, owner); with seeding, semi 0 is ben vs
      * owner and semi 1 is omar vs coach. Ben beats owner, Coach beats omar, then Ben beats
      * Coach in the final → Ben is champion. Open Singles (8 entrants) is generated but unplayed.
+     * Club Ladder is a round-robin played out so the standings table is populated.
      *
      * @param  array<string, User>  $members
      */
-    private function seedBrackets(TournamentCategory $singles, ?TournamentCategory $open, array $members): void
+    private function seedBrackets(TournamentCategory $singles, ?TournamentCategory $open, ?TournamentCategory $ladder, array $members): void
     {
         if (! TournamentMatch::where('category_id', $singles->id)->exists()) {
             app(GenerateBracket::class)->handle($singles);
@@ -288,6 +306,15 @@ class DemoSeeder extends Seeder
         // An 8-player draw, generated and left to be played — the full bracket visual.
         if ($open !== null && ! TournamentMatch::where('category_id', $open->id)->exists()) {
             app(GenerateBracket::class)->handle($open);
+        }
+
+        // A round-robin played out (player one wins each fixture) so the standings are ranked.
+        if ($ladder !== null && ! TournamentMatch::where('category_id', $ladder->id)->exists()) {
+            app(GenerateRoundRobin::class)->handle($ladder);
+            $record = app(UpdateMatchResult::class);
+            foreach (TournamentMatch::where('category_id', $ladder->id)->orderBy('position')->get() as $fixture) {
+                $record->handle($fixture, (int) $fixture->player_one_id, '6-2 6-3', null);
+            }
         }
     }
 

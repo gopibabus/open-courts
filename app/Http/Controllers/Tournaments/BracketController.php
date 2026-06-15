@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Tournaments;
 
+use App\Domains\Tournaments\Actions\BuildStandings;
 use App\Domains\Tournaments\Actions\GenerateBracket;
+use App\Domains\Tournaments\Actions\GenerateRoundRobin;
 use App\Domains\Tournaments\Enums\RegistrationStatus;
+use App\Domains\Tournaments\Enums\TournamentFormat;
 use App\Domains\Tournaments\Models\TournamentCategory;
 use App\Domains\Tournaments\Models\TournamentMatch;
 use App\Http\Controllers\Controller;
@@ -15,9 +18,10 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The single-elimination bracket for a tournament category. `show` (the visual bracket) is
- * open to any club member; `generate` is gated by `can:tournament.manage` at the route layer.
- * Bindings resolve through BelongsToTenant, so they're scoped to the club.
+ * A tournament category's draw — a single-elimination bracket OR a round-robin group +
+ * standings, depending on the category's format. `show` is open to any club member;
+ * `generate` is gated by `can:tournament.manage` at the route layer. Bindings resolve
+ * through BelongsToTenant, so they're scoped to the club.
  */
 class BracketController extends Controller
 {
@@ -30,41 +34,55 @@ class BracketController extends Controller
             ->orderBy('position')
             ->get();
 
-        // Group into rounds ordered first → final (more matches = earlier round).
-        $rounds = $matches
-            ->groupBy(fn (TournamentMatch $m) => $m->round->value)
-            ->map(fn (Collection $group) => [
-                'name' => $group->first()->round->value,
-                'label' => $group->first()->round->label(),
-                'matches' => $group->sortBy('position')->map(fn (TournamentMatch $m) => $this->matchPayload($m))->values(),
-            ])
-            ->sortByDesc(fn (array $round) => count($round['matches']))
-            ->values();
+        $isRoundRobin = $category->format === TournamentFormat::RoundRobin;
 
         return Inertia::render('tournaments/bracket', [
             'tournament' => ['id' => $category->tournament->id, 'name' => $category->tournament->name],
-            'category' => ['id' => $category->id, 'name' => $category->name, 'type' => $category->type->value],
-            'rounds' => $rounds,
-            'hasBracket' => $matches->isNotEmpty(),
+            'category' => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'type' => $category->type->value,
+                'format' => $category->format->value,
+            ],
+            'hasSchedule' => $matches->isNotEmpty(),
             'canManage' => request()->user()?->can('tournament.manage') ?? false,
+
+            // Single-elimination: matches grouped into rounds (first → final).
+            'rounds' => $isRoundRobin ? [] : $matches
+                ->groupBy(fn (TournamentMatch $m) => $m->round->value)
+                ->map(fn (Collection $group) => [
+                    'name' => $group->first()->round->value,
+                    'label' => $group->first()->round->label(),
+                    'matches' => $group->sortBy('position')->map(fn (TournamentMatch $m) => $this->matchPayload($m))->values(),
+                ])
+                ->sortByDesc(fn (array $round) => count($round['matches']))
+                ->values(),
+
+            // Round-robin: a standings table + the full fixture list.
+            'standings' => $isRoundRobin ? app(BuildStandings::class)->handle($category) : [],
+            'fixtures' => $isRoundRobin ? $matches->map(fn (TournamentMatch $m) => $this->matchPayload($m))->values() : [],
         ]);
     }
 
-    public function generate(TournamentCategory $category, GenerateBracket $generate): RedirectResponse
+    public function generate(TournamentCategory $category, GenerateBracket $bracket, GenerateRoundRobin $roundRobin): RedirectResponse
     {
         $confirmed = $category->registrations()
             ->where('status', RegistrationStatus::Confirmed->value)
             ->count();
 
         if ($confirmed < 2) {
-            return back()->withErrors(['bracket' => 'At least 2 confirmed entrants are needed to generate a bracket.']);
+            return back()->withErrors(['bracket' => 'At least 2 confirmed entrants are needed to generate the draw.']);
         }
 
-        $generate->handle($category);
+        if ($category->format === TournamentFormat::RoundRobin) {
+            $roundRobin->handle($category);
+        } else {
+            $bracket->handle($category);
+        }
 
         return redirect()
             ->route('tournaments.bracket', $category)
-            ->with('status', 'Bracket generated.');
+            ->with('status', 'Draw generated.');
     }
 
     /**

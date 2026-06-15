@@ -1,9 +1,15 @@
-# Feature: Tournament bracket (single-elimination)
+# Feature: Tournament draws (bracket & round-robin)
 
-A visual single-elimination bracket for a tournament category. Organisers generate the draw
-from the confirmed entrants, then record each match's result (winner + score), add notes, and
-attach images. Recording a winner advances them to the next round. The same `tournament_matches`
-rows feed players' competitive records + trophies (see [player-profiles](player-profiles.md)).
+A tournament category's **draw** — chosen per category via its `format`:
+
+- **Single elimination** — a visual bracket (two halves converging on a centre final + trophy);
+  recording a winner advances them to the next round.
+- **Round robin** — every entrant plays every other once, with an auto-ranked **standings**
+  table (played / won / lost / points) plus the full fixture list.
+
+Either way, organisers generate the draw from the confirmed entrants, then record each match's
+result (winner + score), add notes, and attach images. The same `tournament_matches` rows feed
+players' competitive records + trophies (see [player-profiles](player-profiles.md)).
 
 ## Plain-English flow
 
@@ -57,13 +63,16 @@ sequenceDiagram
 
 | Concern | File |
 | --- | --- |
-| Schema | `*_create_tournament_matches_table.php` (bracket fields), `*_create_match_attachments_table.php` |
-| Models | `TournamentMatch` (nextMatch + attachments), `MatchAttachment` |
-| Actions | `GenerateBracket`, `UpdateMatchResult`, `UploadMatchImage` |
+| Schema | `*_create_tournament_matches_table.php` (bracket fields), `*_create_match_attachments_table.php`, `*_add_format_to_tournament_categories.php` |
+| Models | `TournamentMatch` (nextMatch + attachments), `MatchAttachment`; `TournamentCategory.format` |
+| Actions | `GenerateBracket`, `GenerateRoundRobin`, `BuildStandings`, `UpdateMatchResult`, `UploadMatchImage` |
 | Endpoints | `BracketController` (show/generate), `MatchController` (update/storeAttachment/destroyAttachment); routes in `routes/tenant/tournaments.php` |
 | FormRequests | `UpdateMatchRequest`, `StoreMatchImageRequest` |
-| UI | `resources/js/pages/tournaments/bracket.tsx` (+ "View bracket" link on `tournaments/show.tsx`) |
-| Tests | `tests/Feature/Tournaments/BracketTest.php`, `tests/e2e/bracket.spec.ts` |
+| UI | `resources/js/pages/tournaments/bracket.tsx` (branches bracket vs standings), shared `components/club/match-dialog.tsx`, format picker on `tournaments/show.tsx` |
+| Tests | `tests/Feature/Tournaments/BracketTest.php`, `RoundRobinTest.php`, `tests/e2e/bracket.spec.ts` |
+
+> Round robin reuses the same match rows (round `group`, no advancement); `BuildStandings`
+> derives the table from completed ones. A category's `format` is set when it's created.
 
 > Singles v1. A title (for the trophy case) is still "win the `final`". Doubles/team brackets and
 > a draw editor are natural extensions.

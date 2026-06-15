@@ -24,6 +24,7 @@ interface Category {
     id: number;
     name: string;
     type: string;
+    format: string;
     max_entrants: number | null;
     entrants: Entrant[];
 }
@@ -93,15 +94,22 @@ const FORMAT_LABELS: Record<string, string> = {
 interface CategoryForm {
     name: string;
     type: string;
+    format: string;
     max_entrants: string;
     [key: string]: string;
 }
+
+const FORMAT_OPTIONS: TypeOption[] = [
+    { value: 'single_elimination', label: 'Single elimination (bracket)' },
+    { value: 'round_robin', label: 'Round robin (group + standings)' },
+];
 
 function AddCategoryDialog({ tournamentId, types }: { tournamentId: number; types: TypeOption[] }) {
     const [open, setOpen] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm<CategoryForm>({
         name: '',
         type: types[0]?.value ?? 'singles',
+        format: 'single_elimination',
         max_entrants: '',
     });
 
@@ -157,6 +165,23 @@ function AddCategoryDialog({ tournamentId, types }: { tournamentId: number; type
                             </SelectContent>
                         </Select>
                         <InputError message={errors.type} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="category-format">Format</Label>
+                        <Select value={data.format} onValueChange={(v) => setData('format', v)}>
+                            <SelectTrigger id="category-format">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {FORMAT_OPTIONS.map((f) => (
+                                    <SelectItem key={f.value} value={f.value}>
+                                        {f.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.format} />
                     </div>
 
                     <div className="grid gap-2">
@@ -581,6 +606,7 @@ function CategoryCard({ tournament, category, canManage }: { tournament: Tournam
                         <Badge variant="outline" className="capitalize">
                             {category.type}
                         </Badge>
+                        {category.format === 'round_robin' && <Badge variant="secondary">Round robin</Badge>}
                     </div>
                     <p className="text-muted-foreground text-xs">
                         <span className="text-display">{active.length}</span>
@@ -596,7 +622,7 @@ function CategoryCard({ tournament, category, canManage }: { tournament: Tournam
                         href={route('tournaments.bracket', category.id)}
                         className="text-muted-foreground hover:text-foreground inline-block text-xs"
                     >
-                        View bracket →
+                        {category.format === 'round_robin' ? 'View standings →' : 'View bracket →'}
                     </Link>
                 </div>
 

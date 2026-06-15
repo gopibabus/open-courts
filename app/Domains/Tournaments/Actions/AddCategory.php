@@ -21,6 +21,7 @@ final class AddCategory
             return $tournament->categories()->create([
                 'name' => $data->name,
                 'type' => $data->type,
+                'format' => $data->format,
                 'max_entrants' => $data->maxEntrants,
             ]);
         });
