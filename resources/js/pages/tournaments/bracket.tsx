@@ -1,10 +1,11 @@
 import { Link, router } from '@inertiajs/react';
-import { ArrowLeft, Trophy } from 'lucide-react';
-import { Fragment, useMemo, useState } from 'react';
+import { ArrowLeft, GripVertical, Trophy } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 import { MatchDialog, sideLabel, type Match, type Player } from '@/components/club/match-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import ClubLayout from '@/layouts/club-layout';
 import { cn } from '@/lib/utils';
 
@@ -24,12 +25,20 @@ interface StandingRow {
     points: number;
 }
 
+interface EntrantRow {
+    id: number;
+    name: string | null;
+    partner: string | null;
+    seed: number | null;
+}
+
 interface BracketProps {
     tournament: { id: number; name: string };
     category: { id: number; name: string; type: string; format: string };
     rounds: Round[];
     standings: StandingRow[];
     fixtures: Match[];
+    entrants: EntrantRow[];
     hasSchedule: boolean;
     canManage: boolean;
 }
@@ -223,7 +232,79 @@ const FORMAT_LABEL: Record<string, string> = {
     round_robin: 'Round robin',
 };
 
-export default function BracketPage({ tournament, category, rounds, standings, fixtures, hasSchedule, canManage }: BracketProps) {
+/** Drag-to-reorder the entrants; the order becomes the seeding for the next generation. */
+function SeedDialog({ categoryId, entrants }: { categoryId: number; entrants: EntrantRow[] }) {
+    const [open, setOpen] = useState(false);
+    const [order, setOrder] = useState(entrants);
+    const [saving, setSaving] = useState(false);
+    const dragIndex = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (open) setOrder(entrants);
+    }, [open, entrants]);
+
+    const drop = (toIndex: number) => {
+        const from = dragIndex.current;
+        dragIndex.current = null;
+        if (from === null || from === toIndex) return;
+        setOrder((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(from, 1);
+            next.splice(toIndex, 0, moved);
+            return next;
+        });
+    };
+
+    const save = () => {
+        router.patch(
+            route('tournaments.seeding.update', categoryId),
+            { entrants: order.map((e) => e.id) },
+            {
+                preserveScroll: true,
+                onStart: () => setSaving(true),
+                onFinish: () => setSaving(false),
+                onSuccess: () => setOpen(false),
+            },
+        );
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline">Seed draw</Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>Seed the draw</DialogTitle>
+                    <DialogDescription>Drag entrants to set the seeding — it’s applied next time you generate the draw.</DialogDescription>
+                </DialogHeader>
+                <ul className="space-y-1">
+                    {order.map((e, i) => (
+                        <li
+                            key={e.id}
+                            draggable
+                            onDragStart={() => (dragIndex.current = i)}
+                            onDragOver={(ev) => ev.preventDefault()}
+                            onDrop={() => drop(i)}
+                            className="border-border bg-card flex cursor-grab items-center gap-3 rounded-md border px-3 py-2 text-sm active:cursor-grabbing"
+                        >
+                            <GripVertical className="text-muted-foreground size-4 shrink-0" />
+                            <span className="text-display text-muted-foreground w-5 text-center">{i + 1}</span>
+                            <span className="truncate">{e.partner ? `${e.name} & ${e.partner}` : e.name}</span>
+                        </li>
+                    ))}
+                </ul>
+                <DialogFooter>
+                    <Button onClick={save} disabled={saving}>
+                        Save seeding
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+export default function BracketPage({ tournament, category, rounds, standings, fixtures, entrants, hasSchedule, canManage }: BracketProps) {
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const isRoundRobin = category.format === 'round_robin';
 
@@ -251,7 +332,12 @@ export default function BracketPage({ tournament, category, rounds, standings, f
                             {category.type} · {FORMAT_LABEL[category.format] ?? category.format}
                         </p>
                     </div>
-                    {canManage && <Button onClick={generate}>{hasSchedule ? 'Regenerate draw' : 'Generate draw'}</Button>}
+                    {canManage && (
+                        <div className="flex items-center gap-2">
+                            {entrants.length > 1 && <SeedDialog categoryId={category.id} entrants={entrants} />}
+                            <Button onClick={generate}>{hasSchedule ? 'Regenerate draw' : 'Generate draw'}</Button>
+                        </div>
+                    )}
                 </header>
 
                 {!hasSchedule ? (

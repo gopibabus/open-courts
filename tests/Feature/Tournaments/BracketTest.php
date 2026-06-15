@@ -5,6 +5,7 @@ namespace Tests\Feature\Tournaments;
 use App\Domains\Identity\Models\User;
 use App\Domains\Tenancy\Models\Tenant;
 use App\Domains\Tournaments\Actions\GenerateBracket;
+use App\Domains\Tournaments\Actions\SeedEntrants;
 use App\Domains\Tournaments\Actions\UpdateMatchResult;
 use App\Domains\Tournaments\Enums\CategoryType;
 use App\Domains\Tournaments\Enums\RegistrationStatus;
@@ -172,6 +173,50 @@ class BracketTest extends TestCase
             ->withoutVite()
             ->get("http://alpha.localhost/categories/{$category->id}/bracket")
             ->assertOk();
+    }
+
+    public function test_manual_seeding_orders_the_draw(): void
+    {
+        $club = $this->makeClub('alpha');
+        [, $category, $members] = $this->makeCategoryWithEntrants($club, 4);
+
+        tenancy()->initialize($club);
+        $registrationIds = Registration::where('category_id', $category->id)->orderBy('id')->pluck('id')->all();
+        // Reverse the order → the last-registered entrant becomes the top seed.
+        app(SeedEntrants::class)->handle($category, array_reverse($registrationIds));
+        app(GenerateBracket::class)->handle($category);
+
+        $semiZero = TournamentMatch::where('category_id', $category->id)->where('round', 'semi_final')->where('position', 0)->first();
+        tenancy()->end();
+
+        // The top seed lands in the first slot of the draw.
+        $this->assertSame(end($members)->id, $semiZero->player_one_id);
+    }
+
+    public function test_the_seeding_endpoint_persists_order_and_is_gated(): void
+    {
+        $club = $this->makeClub('alpha');
+        [, $category] = $this->makeCategoryWithEntrants($club, 3);
+        $admin = $this->makeMember($club, 'club-admin');
+        $member = $this->makeMember($club, 'member');
+
+        tenancy()->initialize($club);
+        $registrationIds = Registration::where('category_id', $category->id)->orderBy('id')->pluck('id')->all();
+        tenancy()->end();
+        $reversed = array_reverse($registrationIds);
+
+        // A plain member cannot seed.
+        $this->actingAs($member)
+            ->patch("http://alpha.localhost/categories/{$category->id}/seeding", ['entrants' => $reversed])
+            ->assertForbidden();
+
+        // An admin can; seeds are persisted in the given order.
+        $this->actingAs($admin)
+            ->patch("http://alpha.localhost/categories/{$category->id}/seeding", ['entrants' => $reversed])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('registrations', ['id' => $reversed[0], 'seed' => 1]);
+        $this->assertDatabaseHas('registrations', ['id' => $reversed[2], 'seed' => 3]);
     }
 
     public function test_a_doubles_bracket_shows_each_pair(): void

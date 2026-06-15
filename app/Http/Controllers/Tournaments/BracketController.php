@@ -7,12 +7,14 @@ namespace App\Http\Controllers\Tournaments;
 use App\Domains\Tournaments\Actions\BuildStandings;
 use App\Domains\Tournaments\Actions\GenerateBracket;
 use App\Domains\Tournaments\Actions\GenerateRoundRobin;
+use App\Domains\Tournaments\Actions\SeedEntrants;
 use App\Domains\Tournaments\Enums\RegistrationStatus;
 use App\Domains\Tournaments\Enums\TournamentFormat;
 use App\Domains\Tournaments\Models\Team;
 use App\Domains\Tournaments\Models\TournamentCategory;
 use App\Domains\Tournaments\Models\TournamentMatch;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tournaments\StoreSeedingRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -56,6 +58,22 @@ class BracketController extends Controller
             'hasSchedule' => $matches->isNotEmpty(),
             'canManage' => request()->user()?->can('tournament.manage') ?? false,
 
+            // Confirmed entrants in current seed order — for the manual draw/seed editor
+            // (team events seed by squad, not registrations, so this is empty for them).
+            'entrants' => $category->is_team ? [] : $category->registrations()
+                ->with(['user:id,name', 'partner:id,name'])
+                ->where('status', RegistrationStatus::Confirmed->value)
+                ->orderByRaw('seed is null, seed')
+                ->orderBy('id')
+                ->get()
+                ->map(fn ($r) => [
+                    'id' => $r->id,
+                    'name' => $r->user?->name,
+                    'partner' => $r->partner?->name,
+                    'seed' => $r->seed,
+                ])
+                ->values(),
+
             // Single-elimination: matches grouped into rounds (first → final).
             'rounds' => $isRoundRobin ? [] : $matches
                 ->groupBy(fn (TournamentMatch $m) => $m->round->value)
@@ -92,6 +110,14 @@ class BracketController extends Controller
         return redirect()
             ->route('tournaments.bracket', $category)
             ->with('status', 'Draw generated.');
+    }
+
+    /** Persist a manual seeding order for a category's entrants (before generating). */
+    public function seed(StoreSeedingRequest $request, TournamentCategory $category, SeedEntrants $seedEntrants): RedirectResponse
+    {
+        $seedEntrants->handle($category, array_map('intval', $request->input('entrants', [])));
+
+        return back()->with('status', 'Seeding saved.');
     }
 
     /**

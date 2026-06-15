@@ -11,6 +11,11 @@ Either way, organisers generate the draw from the confirmed entrants, then recor
 result (winner + score), add notes, and attach images. The same `tournament_matches` rows feed
 players' competitive records + trophies (see [player-profiles](player-profiles.md)).
 
+**Participants** can be individuals (singles), **pairs** (doubles/mixed — each side shows
+"Player & Partner"), or **squads** (a category flagged `is_team`, drawn over the tournament's
+teams). Before generating, organisers can **seed** the draw — drag entrants into order in the
+*Seed draw* dialog; the order is stored on each registration's `seed` and respected on generation.
+
 ## Plain-English flow
 
 1. From a category on the tournament page, anyone can open its **bracket** (`/categories/{c}/bracket`).
@@ -65,7 +70,7 @@ sequenceDiagram
 | --- | --- |
 | Schema | `*_create_tournament_matches_table.php` (bracket fields), `*_create_match_attachments_table.php`, `*_add_format_to_tournament_categories.php` |
 | Models | `TournamentMatch` (nextMatch + attachments), `MatchAttachment`; `TournamentCategory.format` |
-| Actions | `GenerateBracket`, `GenerateRoundRobin`, `BuildStandings`, `UpdateMatchResult`, `UploadMatchImage` |
+| Actions | `GenerateBracket`, `GenerateRoundRobin`, `BuildStandings`, `SeedEntrants`, `UpdateMatchResult`, `UploadMatchImage` |
 | Endpoints | `BracketController` (show/generate), `MatchController` (update/storeAttachment/destroyAttachment); routes in `routes/tenant/tournaments.php` |
 | FormRequests | `UpdateMatchRequest`, `StoreMatchImageRequest` |
 | UI | `resources/js/pages/tournaments/bracket.tsx` (branches bracket vs standings), shared `components/club/match-dialog.tsx`, format picker on `tournaments/show.tsx` |

@@ -59,6 +59,8 @@ Route::middleware('auth')->group(function () {
         // on each match (recording a winner advances them to the next round).
         Route::post('categories/{category}/bracket', [BracketController::class, 'generate'])
             ->name('tournaments.bracket.generate');
+        Route::patch('categories/{category}/seeding', [BracketController::class, 'seed'])
+            ->name('tournaments.seeding.update');
         Route::patch('matches/{match}', [MatchController::class, 'update'])
             ->name('tournaments.matches.update');
         Route::post('matches/{match}/attachments', [MatchController::class, 'storeAttachment'])
