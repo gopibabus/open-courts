@@ -25,6 +25,12 @@ Route::domain(config('tenancy.central_domain'))->group(function () {
 
     Route::middleware(['auth'])->group(function () {
         Route::get('dashboard', function () {
+            // Platform admins belong to no club — send them to their home (the clubs list)
+            // instead of the empty starter dashboard.
+            if (request()->user()?->is_platform_admin) {
+                return redirect()->route('platform.clubs.index');
+            }
+
             return Inertia::render('dashboard');
         })->name('dashboard');
     });
