@@ -21,10 +21,12 @@ class TournamentWaiver extends Model
         'tournament_id',
         'user_id',
         'signature',
+        'signed_clauses',
         'signed_at',
     ];
 
     protected $casts = [
+        'signed_clauses' => 'array',
         'signed_at' => 'datetime',
     ];
 

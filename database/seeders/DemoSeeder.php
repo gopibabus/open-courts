@@ -16,11 +16,13 @@ use App\Domains\Tournaments\Actions\UpdateMatchResult;
 use App\Domains\Tournaments\Enums\CategoryType;
 use App\Domains\Tournaments\Enums\RegistrationStatus;
 use App\Domains\Tournaments\Enums\TournamentFormat;
+use App\Domains\Tournaments\Models\ClubWaiverTemplate;
 use App\Domains\Tournaments\Models\Team;
 use App\Domains\Tournaments\Models\Tournament;
 use App\Domains\Tournaments\Models\TournamentCategory;
 use App\Domains\Tournaments\Models\TournamentMatch;
 use App\Domains\Tournaments\Models\TournamentWaiver;
+use App\Domains\Tournaments\Support\DefaultWaiver;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -283,13 +285,28 @@ class DemoSeeder extends Seeder
         // Generate the demo draws across the formats.
         $this->seedBrackets($tournament, $members);
 
-        // A couple of signed waivers (ben + omar) so organisers see signed vs pending.
+        // A customised club waiver template (default clauses + one club-specific clause),
+        // so the editor demo shows a tailored template rather than the platform defaults.
+        if (ClubWaiverTemplate::current() === null) {
+            ClubWaiverTemplate::create([
+                'clauses' => [
+                    ...DefaultWaiver::clauses(),
+                    'I agree to follow the club code of conduct and any instructions from {tournament} officials.',
+                ],
+            ]);
+        }
+
+        // A couple of signed waivers (ben + omar) so organisers see signed vs pending. Each
+        // snapshots the resolved clauses it was signed against (the template at signing time).
         if (! TournamentWaiver::where('tournament_id', $tournament->id)->exists()) {
+            $signedClauses = DefaultWaiver::resolve(ClubWaiverTemplate::clausesForClub(), $tournament->name);
+
             foreach (['ben', 'omar'] as $handle) {
                 TournamentWaiver::create([
                     'tournament_id' => $tournament->id,
                     'user_id' => $members[$handle]->id,
                     'signature' => $members[$handle]->name,
+                    'signed_clauses' => $signedClauses,
                     'signed_at' => Carbon::now()->subDay(),
                 ]);
             }

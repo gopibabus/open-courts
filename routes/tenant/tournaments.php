@@ -10,6 +10,7 @@ use App\Http\Controllers\Tournaments\RegistrationController;
 use App\Http\Controllers\Tournaments\TeamController;
 use App\Http\Controllers\Tournaments\TournamentController;
 use App\Http\Controllers\Tournaments\WaiverController;
+use App\Http\Controllers\Tournaments\WaiverTemplateController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -37,6 +38,14 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('can:tournament.manage')->group(function () {
         Route::get('tournaments/create', [TournamentController::class, 'create'])->name('tournaments.create');
+
+        // The club's editable waiver template (the clauses every player signs). Declared as a
+        // literal `tournaments/waiver-template` before the `tournaments/{tournament}` wildcard
+        // (registered later in this file) so the literal segment wins route matching.
+        Route::get('tournaments/waiver-template', [WaiverTemplateController::class, 'edit'])
+            ->name('tournaments.waiver-template.edit');
+        Route::put('tournaments/waiver-template', [WaiverTemplateController::class, 'update'])
+            ->name('tournaments.waiver-template.update');
         Route::post('tournaments', [TournamentController::class, 'store'])->name('tournaments.store');
         Route::post('tournaments/{tournament}/categories', [CategoryController::class, 'store'])
             ->name('tournaments.categories.store');

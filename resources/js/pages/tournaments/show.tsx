@@ -938,9 +938,19 @@ export default function ShowTournament({
                 <section className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Waivers</h2>
-                        <Link href={route('tournaments.waiver', tournament.id)} className="text-muted-foreground hover:text-foreground text-xs">
-                            {myWaiver.signed ? '✓ Your waiver is signed' : 'Sign your waiver →'}
-                        </Link>
+                        <div className="flex items-center gap-4">
+                            {canManage && (
+                                <Link
+                                    href={route('tournaments.waiver-template.edit')}
+                                    className="text-muted-foreground hover:text-foreground text-xs"
+                                >
+                                    Edit template
+                                </Link>
+                            )}
+                            <Link href={route('tournaments.waiver', tournament.id)} className="text-muted-foreground hover:text-foreground text-xs">
+                                {myWaiver.signed ? '✓ Your waiver is signed' : 'Sign your waiver →'}
+                            </Link>
+                        </div>
                     </div>
                     <p className="text-muted-foreground text-xs">Each player signs a liability waiver to compete in this tournament.</p>
                     {canManage &&

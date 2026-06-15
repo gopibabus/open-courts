@@ -20,6 +20,7 @@ document — every feature slice adds its events here.
 | `PlayerRemovedFromTeam` | Tournaments | A member is removed from a roster | — |
 | `MatchRecorded` | Tournaments | A match result is recorded (after commit) | — |
 | `WaiverSigned` | Tournaments | A player signs a tournament waiver (after commit) | — |
+| `WaiverTemplateUpdated` | Tournaments | A club's waiver template is created or edited (after commit) | — |
 | `ManagerAddedToTournament` | Tournaments | A member is added to a tournament's management (EC) | — |
 | `ManagerRemovedFromTournament` | Tournaments | A member is removed from a tournament's management | — |
 | `BookingRequested` | Booking | A booking is requested | — |
