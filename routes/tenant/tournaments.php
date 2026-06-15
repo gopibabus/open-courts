@@ -9,6 +9,7 @@ use App\Http\Controllers\Tournaments\MatchController;
 use App\Http\Controllers\Tournaments\RegistrationController;
 use App\Http\Controllers\Tournaments\TeamController;
 use App\Http\Controllers\Tournaments\TournamentController;
+use App\Http\Controllers\Tournaments\WaiverController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -79,6 +80,10 @@ Route::middleware('auth')->group(function () {
 
     // The visual bracket for a category — any authenticated club member may view it.
     Route::get('categories/{category}/bracket', [BracketController::class, 'show'])->name('tournaments.bracket');
+
+    // A player's liability waiver for a tournament — view + sign their own.
+    Route::get('tournaments/{tournament}/waiver', [WaiverController::class, 'show'])->name('tournaments.waiver');
+    Route::post('tournaments/{tournament}/waiver', [WaiverController::class, 'store'])->name('tournaments.waiver.store');
 
     // Entrant self-service — any authenticated club member.
     Route::post('tournaments/categories/{category}/registrations', [RegistrationController::class, 'store'])

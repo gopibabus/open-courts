@@ -84,6 +84,8 @@ interface ShowTournamentProps {
     matches: MatchRow[];
     matchRounds: RoundOption[];
     clubMembers: MemberRef[];
+    waivers: { id: number; name: string | null; signed: boolean; signedAt: string | null }[];
+    myWaiver: { signed: boolean; signedAt: string | null };
     canManage: boolean;
     canManageTeams: boolean;
 }
@@ -757,9 +759,12 @@ export default function ShowTournament({
     matches,
     matchRounds,
     clubMembers,
+    waivers,
+    myWaiver,
     canManage,
     canManageTeams,
 }: ShowTournamentProps) {
+    const signedWaivers = waivers.filter((w) => w.signed).length;
     return (
         <ClubLayout title="Tournament">
             <div className="space-y-8">
@@ -928,6 +933,35 @@ export default function ShowTournament({
                             })}
                         </ul>
                     )}
+                </section>
+
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Waivers</h2>
+                        <Link href={route('tournaments.waiver', tournament.id)} className="text-muted-foreground hover:text-foreground text-xs">
+                            {myWaiver.signed ? '✓ Your waiver is signed' : 'Sign your waiver →'}
+                        </Link>
+                    </div>
+                    <p className="text-muted-foreground text-xs">Each player signs a liability waiver to compete in this tournament.</p>
+                    {canManage &&
+                        (waivers.length === 0 ? (
+                            <p className="text-muted-foreground text-sm">No entrants yet.</p>
+                        ) : (
+                            <>
+                                <p className="text-muted-foreground text-xs">
+                                    <span className="text-display">{signedWaivers}</span> of <span className="text-display">{waivers.length}</span> players
+                                    signed
+                                </p>
+                                <ul className="divide-border divide-y">
+                                    {waivers.map((w) => (
+                                        <li key={w.id} className="flex items-center justify-between py-2 text-sm">
+                                            <span className="font-medium">{w.name}</span>
+                                            {w.signed ? <Badge variant="outline">Signed</Badge> : <Badge variant="secondary">Pending</Badge>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </>
+                        ))}
                 </section>
             </div>
         </ClubLayout>

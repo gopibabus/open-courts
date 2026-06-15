@@ -10,6 +10,7 @@ use App\Domains\Tournaments\Enums\CategoryType;
 use App\Domains\Tournaments\Enums\MatchRound;
 use App\Domains\Tournaments\Enums\TournamentFormat;
 use App\Domains\Tournaments\Models\Tournament;
+use App\Domains\Tournaments\Models\TournamentWaiver;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tournaments\OpenRegistrationRequest;
 use App\Http\Requests\Tournaments\StoreTournamentRequest;
@@ -96,6 +97,12 @@ class TournamentController extends Controller
             'matches.category:id,name',
         ]);
 
+        // Waivers — distinct entrants across categories + each one's signed status.
+        $waiverByUser = TournamentWaiver::where('tournament_id', $tournament->id)->get()->keyBy('user_id');
+        $entrants = $tournament->categories->flatMap(fn ($c) => $c->registrations)
+            ->map(fn ($r) => $r->user)->filter()->unique('id')->values();
+        $currentUserId = request()->user()?->id;
+
         return Inertia::render('tournaments/show', [
             'tournament' => [
                 'id' => $tournament->id,
@@ -160,6 +167,17 @@ class TournamentController extends Controller
                 ->get(['users.id', 'users.name'])
                 ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
                 ->values(),
+            // Waiver status: the current member's, plus the full list for organisers.
+            'waivers' => $entrants->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'signed' => $waiverByUser->has($u->id),
+                'signedAt' => $waiverByUser->get($u->id)?->signed_at?->toIso8601String(),
+            ])->values(),
+            'myWaiver' => [
+                'signed' => $currentUserId !== null && $waiverByUser->has($currentUserId),
+                'signedAt' => $currentUserId !== null ? $waiverByUser->get($currentUserId)?->signed_at?->toIso8601String() : null,
+            ],
             'categoryTypes' => $this->categoryTypeOptions(),
             'canManage' => $this->canManage(),
             // Creating teams is gated by team.manage (coach + club-admin), separate from

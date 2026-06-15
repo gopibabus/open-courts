@@ -20,6 +20,7 @@ use App\Domains\Tournaments\Models\Team;
 use App\Domains\Tournaments\Models\Tournament;
 use App\Domains\Tournaments\Models\TournamentCategory;
 use App\Domains\Tournaments\Models\TournamentMatch;
+use App\Domains\Tournaments\Models\TournamentWaiver;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -281,6 +282,18 @@ class DemoSeeder extends Seeder
 
         // Generate the demo draws across the formats.
         $this->seedBrackets($tournament, $members);
+
+        // A couple of signed waivers (ben + omar) so organisers see signed vs pending.
+        if (! TournamentWaiver::where('tournament_id', $tournament->id)->exists()) {
+            foreach (['ben', 'omar'] as $handle) {
+                TournamentWaiver::create([
+                    'tournament_id' => $tournament->id,
+                    'user_id' => $members[$handle]->id,
+                    'signature' => $members[$handle]->name,
+                    'signed_at' => Carbon::now()->subDay(),
+                ]);
+            }
+        }
     }
 
     /**
