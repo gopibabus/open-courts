@@ -34,6 +34,14 @@ class BracketController extends Controller
             ->orderBy('position')
             ->get();
 
+        // For doubles/mixed, each side is a pair — map the entrant's user to their partner's
+        // name so the draw can show "Player & Partner". Empty for singles.
+        $partners = $category->registrations()
+            ->with('partner:id,name')
+            ->get()
+            ->mapWithKeys(fn ($r) => [(int) $r->user_id => $r->partner?->name])
+            ->all();
+
         $isRoundRobin = $category->format === TournamentFormat::RoundRobin;
 
         return Inertia::render('tournaments/bracket', [
@@ -53,14 +61,14 @@ class BracketController extends Controller
                 ->map(fn (Collection $group) => [
                     'name' => $group->first()->round->value,
                     'label' => $group->first()->round->label(),
-                    'matches' => $group->sortBy('position')->map(fn (TournamentMatch $m) => $this->matchPayload($m))->values(),
+                    'matches' => $group->sortBy('position')->map(fn (TournamentMatch $m) => $this->matchPayload($m, $partners))->values(),
                 ])
                 ->sortByDesc(fn (array $round) => count($round['matches']))
                 ->values(),
 
             // Round-robin: a standings table + the full fixture list.
             'standings' => $isRoundRobin ? app(BuildStandings::class)->handle($category) : [],
-            'fixtures' => $isRoundRobin ? $matches->map(fn (TournamentMatch $m) => $this->matchPayload($m))->values() : [],
+            'fixtures' => $isRoundRobin ? $matches->map(fn (TournamentMatch $m) => $this->matchPayload($m, $partners))->values() : [],
         ]);
     }
 
@@ -86,16 +94,21 @@ class BracketController extends Controller
     }
 
     /**
+     * @param  array<int, string|null>  $partners  entrant user id → partner name (doubles)
      * @return array<string, mixed>
      */
-    private function matchPayload(TournamentMatch $match): array
+    private function matchPayload(TournamentMatch $match, array $partners = []): array
     {
         return [
             'id' => $match->id,
             'position' => $match->position,
             'round' => $match->round->label(),
-            'playerOne' => $match->playerOne ? ['id' => $match->playerOne->id, 'name' => $match->playerOne->name] : null,
-            'playerTwo' => $match->playerTwo ? ['id' => $match->playerTwo->id, 'name' => $match->playerTwo->name] : null,
+            'playerOne' => $match->playerOne
+                ? ['id' => $match->playerOne->id, 'name' => $match->playerOne->name, 'partner' => $partners[$match->player_one_id] ?? null]
+                : null,
+            'playerTwo' => $match->playerTwo
+                ? ['id' => $match->playerTwo->id, 'name' => $match->playerTwo->name, 'partner' => $partners[$match->player_two_id] ?? null]
+                : null,
             'winnerId' => $match->winner_id,
             'score' => $match->score,
             'notes' => $match->notes,

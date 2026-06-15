@@ -13,6 +13,13 @@ import { cn } from '@/lib/utils';
 export interface Player {
     id: number;
     name: string;
+    partner?: string | null;
+}
+
+/** Display label for a match side — "Name & Partner" for doubles, just the name otherwise. */
+export function sideLabel(player: Player | null): string {
+    if (!player) return 'TBD';
+    return player.partner ? `${player.name} & ${player.partner}` : player.name;
 }
 
 export interface Attachment {
@@ -87,7 +94,7 @@ export function MatchDialog({ match, canManage, onClose }: { match: Match; canMa
                 <DialogHeader>
                     <DialogTitle>{match.round}</DialogTitle>
                     <DialogDescription>
-                        {match.playerOne?.name ?? 'TBD'} vs {match.playerTwo?.name ?? 'TBD'}
+                        {sideLabel(match.playerOne)} vs {sideLabel(match.playerTwo)}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -108,7 +115,7 @@ export function MatchDialog({ match, canManage, onClose }: { match: Match; canMa
                                                 : 'border-border hover:bg-accent',
                                         )}
                                     >
-                                        {p.name}
+                                        {sideLabel(p)}
                                     </button>
                                 ))}
                             </div>

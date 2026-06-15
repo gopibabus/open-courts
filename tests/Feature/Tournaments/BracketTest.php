@@ -16,6 +16,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -170,6 +171,41 @@ class BracketTest extends TestCase
             ->withoutVite()
             ->get("http://alpha.localhost/categories/{$category->id}/bracket")
             ->assertOk();
+    }
+
+    public function test_a_doubles_bracket_shows_each_pair(): void
+    {
+        $club = $this->makeClub('alpha');
+        $a = $this->makeMember($club, 'member');
+        $b = $this->makeMember($club, 'member');
+        $c = $this->makeMember($club, 'member');
+        $d = $this->makeMember($club, 'member');
+        $admin = $this->makeMember($club, 'club-admin');
+
+        tenancy()->initialize($club);
+        $tournament = Tournament::create(['name' => 'Cup', 'status' => 'open', 'format' => 'single_elimination']);
+        $category = TournamentCategory::create(['tournament_id' => $tournament->id, 'name' => 'Mixed', 'type' => CategoryType::Mixed]);
+        foreach ([[$a, $b], [$c, $d]] as [$entrant, $partner]) {
+            Registration::create([
+                'tournament_id' => $tournament->id,
+                'category_id' => $category->id,
+                'user_id' => $entrant->id,
+                'partner_id' => $partner->id,
+                'status' => RegistrationStatus::Confirmed,
+            ]);
+        }
+        app(GenerateBracket::class)->handle($category);
+        tenancy()->end();
+
+        // The final's two sides each carry their partner's name.
+        $this->actingAs($admin)
+            ->withoutVite()
+            ->get("http://alpha.localhost/categories/{$category->id}/bracket")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('tournaments/bracket')
+                ->where('rounds.0.matches.0.playerOne.partner', $b->name)
+                ->where('rounds.0.matches.0.playerTwo.partner', $d->name));
     }
 
     public function test_an_image_can_be_attached_to_a_match(): void

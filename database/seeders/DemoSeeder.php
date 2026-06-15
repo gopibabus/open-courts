@@ -227,10 +227,12 @@ class DemoSeeder extends Seeder
                     'status' => RegistrationStatus::Confirmed,
                 ]);
             }
-            foreach (['alice', 'chloe'] as $handle) {
+            // Doubles pairs (entrant + partner).
+            foreach ([['alice', 'ben'], ['chloe', 'omar']] as [$entrant, $partner]) {
                 $mixed->registrations()->create([
                     'tournament_id' => $tournament->id,
-                    'user_id' => $members[$handle]->id,
+                    'user_id' => $members[$entrant]->id,
+                    'partner_id' => $members[$partner]->id,
                     'status' => RegistrationStatus::Confirmed,
                 ]);
             }
@@ -270,26 +272,27 @@ class DemoSeeder extends Seeder
             }
         }
 
-        // Generate the demo brackets: a played-out Men's Singles (Ben champion → drives the
-        // profile demo) and an 8-player Open Singles draw left to be played.
-        $open = $tournament->categories()->firstWhere('name', 'Open Singles');
-        $ladder = $tournament->categories()->firstWhere('name', 'Club Ladder');
-        $this->seedBrackets($singles, $open, $ladder, $members);
+        // Generate the demo draws across the formats.
+        $this->seedBrackets($tournament, $members);
     }
 
     /**
-     * Generate the demo brackets idempotently (guarded per category).
-     *
-     * Men's Singles has 4 entrants (ben, omar, coach, owner); with seeding, semi 0 is ben vs
-     * owner and semi 1 is omar vs coach. Ben beats owner, Coach beats omar, then Ben beats
-     * Coach in the final → Ben is champion. Open Singles (8 entrants) is generated but unplayed.
-     * Club Ladder is a round-robin played out so the standings table is populated.
+     * Generate the demo draws idempotently (guarded per category):
+     *  - Men's Singles — a played-out 4-player bracket (Ben champion → drives the profile demo).
+     *  - Open Singles — an 8-player bracket, generated but unplayed (the full bracket visual).
+     *  - Club Ladder — a round-robin played out so the standings table is populated.
+     *  - Mixed Doubles — a generated doubles bracket (pairs), to show "Player & Partner".
      *
      * @param  array<string, User>  $members
      */
-    private function seedBrackets(TournamentCategory $singles, ?TournamentCategory $open, ?TournamentCategory $ladder, array $members): void
+    private function seedBrackets(Tournament $tournament, array $members): void
     {
-        if (! TournamentMatch::where('category_id', $singles->id)->exists()) {
+        $singles = $tournament->categories()->firstWhere('name', "Men's Singles");
+        $open = $tournament->categories()->firstWhere('name', 'Open Singles');
+        $ladder = $tournament->categories()->firstWhere('name', 'Club Ladder');
+        $mixed = $tournament->categories()->firstWhere('name', 'Mixed Doubles');
+
+        if ($singles !== null && ! TournamentMatch::where('category_id', $singles->id)->exists()) {
             app(GenerateBracket::class)->handle($singles);
 
             $record = app(UpdateMatchResult::class);
@@ -315,6 +318,11 @@ class DemoSeeder extends Seeder
             foreach (TournamentMatch::where('category_id', $ladder->id)->orderBy('position')->get() as $fixture) {
                 $record->handle($fixture, (int) $fixture->player_one_id, '6-2 6-3', null);
             }
+        }
+
+        // A doubles draw (two pairs) — generated to show "Player & Partner" in the bracket.
+        if ($mixed !== null && ! TournamentMatch::where('category_id', $mixed->id)->exists()) {
+            app(GenerateBracket::class)->handle($mixed);
         }
     }
 

@@ -2,7 +2,7 @@ import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, Trophy } from 'lucide-react';
 import { Fragment, useMemo, useState } from 'react';
 
-import { MatchDialog, type Match, type Player } from '@/components/club/match-dialog';
+import { MatchDialog, sideLabel, type Match, type Player } from '@/components/club/match-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import ClubLayout from '@/layouts/club-layout';
@@ -17,6 +17,7 @@ interface Round {
 interface StandingRow {
     userId: number;
     name: string | null;
+    partner: string | null;
     played: number;
     won: number;
     lost: number;
@@ -44,7 +45,7 @@ function PlayerLine({ player, won, decided }: { player: Player | null; won: bool
                 won ? 'bg-white/25' : decided ? 'opacity-50' : '',
             )}
         >
-            <span className="truncate">{player?.name ?? 'TBD'}</span>
+            <span className="truncate">{sideLabel(player)}</span>
             {won && <Trophy className="size-3 shrink-0 text-amber-300" />}
         </div>
     );
@@ -170,7 +171,10 @@ function RoundRobin({ standings, fixtures, onSelect }: { standings: StandingRow[
                             {standings.map((row, i) => (
                                 <tr key={row.userId} className="border-border border-b last:border-0">
                                     <td className="text-display text-muted-foreground px-3 py-2">{i + 1}</td>
-                                    <td className="truncate px-3 py-2 font-medium">{row.name}</td>
+                                    <td className="truncate px-3 py-2 font-medium">
+                                        {row.name}
+                                        {row.partner && <span className="text-muted-foreground font-normal"> &amp; {row.partner}</span>}
+                                    </td>
                                     <td className="text-display px-2 py-2 text-center">{row.played}</td>
                                     <td className="text-display px-2 py-2 text-center">{row.won}</td>
                                     <td className="text-display px-2 py-2 text-center">{row.lost}</td>
@@ -193,9 +197,9 @@ function RoundRobin({ standings, fixtures, onSelect }: { standings: StandingRow[
                                 className="hover:bg-accent flex w-full items-center justify-between gap-3 p-3 text-left text-sm transition"
                             >
                                 <span className="min-w-0 truncate">
-                                    <span className={cn(m.winnerId === m.playerOne?.id && 'font-semibold')}>{m.playerOne?.name ?? 'TBD'}</span>
+                                    <span className={cn(m.winnerId === m.playerOne?.id && 'font-semibold')}>{sideLabel(m.playerOne)}</span>
                                     <span className="text-muted-foreground"> vs </span>
-                                    <span className={cn(m.winnerId === m.playerTwo?.id && 'font-semibold')}>{m.playerTwo?.name ?? 'TBD'}</span>
+                                    <span className={cn(m.winnerId === m.playerTwo?.id && 'font-semibold')}>{sideLabel(m.playerTwo)}</span>
                                 </span>
                                 <span className="flex shrink-0 items-center gap-2">
                                     {m.score && <span className="text-display text-muted-foreground text-xs">{m.score}</span>}

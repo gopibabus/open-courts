@@ -16,7 +16,7 @@ use App\Domains\Tournaments\Models\TournamentMatch;
 final class BuildStandings
 {
     /**
-     * @return array<int, array{userId: int, name: string|null, played: int, won: int, lost: int, points: int}>
+     * @return array<int, array{userId: int, name: string|null, partner: string|null, played: int, won: int, lost: int, points: int}>
      */
     public function handle(TournamentCategory $category): array
     {
@@ -25,7 +25,7 @@ final class BuildStandings
             ->get();
 
         $rows = $category->registrations()
-            ->with('user:id,name')
+            ->with(['user:id,name', 'partner:id,name'])
             ->where('status', RegistrationStatus::Confirmed->value)
             ->get()
             ->map(function ($registration) use ($matches): array {
@@ -36,6 +36,7 @@ final class BuildStandings
                 return [
                     'userId' => $userId,
                     'name' => $registration->user?->name,
+                    'partner' => $registration->partner?->name,
                     'played' => $played,
                     'won' => $won,
                     'lost' => $played - $won,

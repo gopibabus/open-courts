@@ -580,17 +580,36 @@ function dateRange(from: string | null, to: string | null): string {
     return from ?? to ?? '—';
 }
 
-function CategoryCard({ tournament, category, canManage }: { tournament: Tournament; category: Category; canManage: boolean }) {
+function CategoryCard({
+    tournament,
+    category,
+    canManage,
+    members,
+}: {
+    tournament: Tournament;
+    category: Category;
+    canManage: boolean;
+    members: MemberRef[];
+}) {
     // Active = anyone not withdrawn (capacity is measured against these).
     const active = category.entrants.filter((e) => e.status !== 'withdrawn');
     const isOpen = tournament.status === 'open';
     const atCapacity = category.max_entrants !== null && active.length >= category.max_entrants;
-    // Empty payload — the entrant is the current user (server-side). `registration` is the
-    // domain-rejection error key surfaced by RegisterEntrant via the controller.
-    const { errors, post, processing } = useForm<Record<string, never>>({});
+    const requiresPartner = category.type !== 'singles';
+    const [registerOpen, setRegisterOpen] = useState(false);
+
+    // The entrant is the current user (server-side); `partner_id` is the doubles partner.
+    // `registration` is the domain-rejection error key surfaced by RegisterEntrant.
+    const { data, setData, errors, post, processing, reset } = useForm<{ partner_id: string; [key: string]: string }>({ partner_id: '' });
 
     const register = () => {
-        post(route('tournaments.registrations.store', category.id), { preserveScroll: true });
+        post(route('tournaments.registrations.store', category.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                reset();
+                setRegisterOpen(false);
+            },
+        });
     };
 
     const withdraw = (registrationId: number) => {
@@ -626,11 +645,56 @@ function CategoryCard({ tournament, category, canManage }: { tournament: Tournam
                     </Link>
                 </div>
 
-                {isOpen && (
-                    <Button size="sm" onClick={register} disabled={processing || atCapacity}>
-                        {atCapacity ? 'Full' : 'Register'}
-                    </Button>
-                )}
+                {isOpen &&
+                    (requiresPartner ? (
+                        <Dialog open={registerOpen} onOpenChange={setRegisterOpen}>
+                            <DialogTrigger asChild>
+                                <Button size="sm" disabled={atCapacity}>
+                                    {atCapacity ? 'Full' : 'Register'}
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <form
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        register();
+                                    }}
+                                    className="space-y-4"
+                                >
+                                    <DialogHeader>
+                                        <DialogTitle>Register for {category.name}</DialogTitle>
+                                        <DialogDescription>Pick your partner for this doubles event.</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor={`partner-${category.id}`}>Partner</Label>
+                                        <Select value={data.partner_id} onValueChange={(v) => setData('partner_id', v)}>
+                                            <SelectTrigger id={`partner-${category.id}`}>
+                                                <SelectValue placeholder="Select a partner" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {members.map((m) => (
+                                                    <SelectItem key={m.id} value={String(m.id)}>
+                                                        {m.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={errors.partner_id} />
+                                        <InputError message={errors.registration} />
+                                    </div>
+                                    <DialogFooter>
+                                        <Button type="submit" disabled={processing || !data.partner_id}>
+                                            Register
+                                        </Button>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
+                    ) : (
+                        <Button size="sm" onClick={register} disabled={processing || atCapacity}>
+                            {atCapacity ? 'Full' : 'Register'}
+                        </Button>
+                    ))}
             </div>
 
             <InputError className="mt-2" message={errors.registration} />
@@ -721,7 +785,13 @@ export default function ShowTournament({
                     ) : (
                         <ul className="space-y-4">
                             {categories.map((category) => (
-                                <CategoryCard key={category.id} tournament={tournament} category={category} canManage={canManage} />
+                                <CategoryCard
+                                    key={category.id}
+                                    tournament={tournament}
+                                    category={category}
+                                    canManage={canManage}
+                                    members={clubMembers}
+                                />
                             ))}
                         </ul>
                     )}
