@@ -28,6 +28,7 @@ final class RecordMatchResult
                 'player_two_id' => $data->playerTwoId,
                 'winner_id' => $data->winnerId,
                 'score' => $data->score,
+                'status' => 'completed',
                 'played_at' => Carbon::now(),
             ]);
 

@@ -40,9 +40,12 @@ final class BuildPlayerProfile
             ->where('user_id', $member->id)
             ->value('created_at');
 
+        // Only COMPLETED matches (those with a winner) count toward a record — a scheduled
+        // bracket match with assigned players but no result yet must not count as a loss.
         /** @var Collection<int, TournamentMatch> $matches */
         $matches = TournamentMatch::query()
             ->with(['tournament:id,name', 'category:id,name', 'playerOne:id,name', 'playerTwo:id,name'])
+            ->whereNotNull('winner_id')
             ->where(fn ($q) => $q->where('player_one_id', $member->id)->orWhere('player_two_id', $member->id))
             ->orderByDesc('played_at')
             ->get();

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Tournaments\BracketController;
 use App\Http\Controllers\Tournaments\CategoryController;
 use App\Http\Controllers\Tournaments\ManagementController;
 use App\Http\Controllers\Tournaments\MatchController;
@@ -53,6 +54,17 @@ Route::middleware('auth')->group(function () {
             ->name('tournaments.matches.store');
         Route::delete('matches/{match}', [MatchController::class, 'destroy'])
             ->name('tournaments.matches.destroy');
+
+        // Bracket — generate the single-elimination draw, then record results + attach images
+        // on each match (recording a winner advances them to the next round).
+        Route::post('categories/{category}/bracket', [BracketController::class, 'generate'])
+            ->name('tournaments.bracket.generate');
+        Route::patch('matches/{match}', [MatchController::class, 'update'])
+            ->name('tournaments.matches.update');
+        Route::post('matches/{match}/attachments', [MatchController::class, 'storeAttachment'])
+            ->name('tournaments.matches.attachments.store');
+        Route::delete('attachments/{attachment}', [MatchController::class, 'destroyAttachment'])
+            ->name('tournaments.matches.attachments.destroy');
     });
 
     // Create a team within a tournament — requires the club-scoped `team.manage` permission.
@@ -62,6 +74,9 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('tournaments/{tournament}', [TournamentController::class, 'show'])->name('tournaments.show');
+
+    // The visual bracket for a category — any authenticated club member may view it.
+    Route::get('categories/{category}/bracket', [BracketController::class, 'show'])->name('tournaments.bracket');
 
     // Entrant self-service — any authenticated club member.
     Route::post('tournaments/categories/{category}/registrations', [RegistrationController::class, 'store'])

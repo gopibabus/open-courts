@@ -592,6 +592,12 @@ function CategoryCard({ tournament, category, canManage }: { tournament: Tournam
                         )}{' '}
                         entrant{active.length === 1 ? '' : 's'}
                     </p>
+                    <Link
+                        href={route('tournaments.bracket', category.id)}
+                        className="text-muted-foreground hover:text-foreground inline-block text-xs"
+                    >
+                        View bracket →
+                    </Link>
                 </div>
 
                 {isOpen && (

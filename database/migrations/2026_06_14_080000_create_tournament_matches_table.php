@@ -5,10 +5,16 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * A recorded match result within a tournament category — who beat whom, in which round.
- * Tenant-scoped (row-level) via `tenant_id`. This is the source data a player's
- * competitive record + trophies are derived from. Singles-focused for now: two players
- * (users) and a winner; doubles/team results are a later extension.
+ * A match within a tournament category. Tenant-scoped (row-level) via `tenant_id`. Doubles
+ * as both a recorded ad-hoc result AND a node in a generated single-elimination bracket:
+ *
+ * - `round` + `position` place the match in the bracket; `next_match_id` + `next_slot` are
+ *   where the winner advances. Standalone (non-bracket) results leave those null.
+ * - Players + winner are NULLABLE: a future-round bracket match has TBD players until the
+ *   prior round is decided. `status` is `scheduled` until a result is recorded (`completed`).
+ *
+ * It's the source data a player's competitive record + trophies are derived from (completed
+ * matches only). Singles-focused for now; doubles/team results are a later extension.
  */
 return new class extends Migration
 {
@@ -20,10 +26,15 @@ return new class extends Migration
             $table->foreignId('tournament_id')->constrained()->cascadeOnDelete();
             $table->foreignId('category_id')->constrained('tournament_categories')->cascadeOnDelete();
             $table->string('round');                                    // final | semi_final | quarter_final | round_of_16 | group | other
-            $table->foreignId('player_one_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('player_two_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('winner_id')->constrained('users')->cascadeOnDelete(); // always one of the two
+            $table->unsignedInteger('position')->nullable();            // 0-based slot within the round (bracket)
+            $table->foreignId('next_match_id')->nullable()->constrained('tournament_matches')->nullOnDelete();
+            $table->unsignedTinyInteger('next_slot')->nullable();       // which player slot (1|2) the winner advances into
+            $table->foreignId('player_one_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('player_two_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('winner_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('score')->nullable();                        // free-form, e.g. "6-4 6-2"
+            $table->text('notes')->nullable();
+            $table->string('status')->default('scheduled');             // scheduled | completed
             $table->timestamp('played_at')->nullable();
             $table->timestamps();
 

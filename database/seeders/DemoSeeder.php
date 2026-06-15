@@ -10,6 +10,8 @@ use App\Domains\Facilities\Models\CourtAvailability;
 use App\Domains\Identity\Models\User;
 use App\Domains\Support\Models\SupportRequest;
 use App\Domains\Tenancy\Models\Tenant;
+use App\Domains\Tournaments\Actions\GenerateBracket;
+use App\Domains\Tournaments\Actions\UpdateMatchResult;
 use App\Domains\Tournaments\Enums\CategoryType;
 use App\Domains\Tournaments\Enums\RegistrationStatus;
 use App\Domains\Tournaments\Models\Team;
@@ -72,6 +74,8 @@ class DemoSeeder extends Seeder
             ['handle' => 'ben', 'name' => 'Ben Okafor', 'email' => 'ben@smashclub.test', 'role' => 'member'],
             ['handle' => 'chloe', 'name' => 'Chloe Park', 'email' => 'chloe@smashclub.test', 'role' => 'member'],
             ['handle' => 'omar', 'name' => 'Omar Haddad', 'email' => 'omar@smashclub.test', 'role' => 'member'],
+            ['handle' => 'nina', 'name' => 'Nina Costa', 'email' => 'nina@smashclub.test', 'role' => 'member'],
+            ['handle' => 'raj', 'name' => 'Raj Patel', 'email' => 'raj@smashclub.test', 'role' => 'member'],
         ];
 
         $members = [];
@@ -198,8 +202,15 @@ class DemoSeeder extends Seeder
                 'type' => CategoryType::Mixed,
                 'max_entrants' => 8,
             ]);
+            // An 8-entrant event so the demo bracket is a full multi-round draw.
+            $open = TournamentCategory::create([
+                'tournament_id' => $tournament->id,
+                'name' => 'Open Singles',
+                'type' => CategoryType::Singles,
+                'max_entrants' => 16,
+            ]);
 
-            // A handful of entrants across the two categories.
+            // A handful of entrants across the categories.
             foreach (['ben', 'omar', 'coach', 'owner'] as $handle) {
                 $singles->registrations()->create([
                     'tournament_id' => $tournament->id,
@@ -209,6 +220,13 @@ class DemoSeeder extends Seeder
             }
             foreach (['alice', 'chloe'] as $handle) {
                 $mixed->registrations()->create([
+                    'tournament_id' => $tournament->id,
+                    'user_id' => $members[$handle]->id,
+                    'status' => RegistrationStatus::Confirmed,
+                ]);
+            }
+            foreach (['ben', 'omar', 'coach', 'owner', 'alice', 'chloe', 'nina', 'raj'] as $handle) {
+                $open->registrations()->create([
                     'tournament_id' => $tournament->id,
                     'user_id' => $members[$handle]->id,
                     'status' => RegistrationStatus::Confirmed,
@@ -236,39 +254,40 @@ class DemoSeeder extends Seeder
             }
         }
 
-        // A finished Men's Singles draw, so player profiles show real records + trophies.
-        $this->seedMatches($tournament, $singles, $members);
+        // Generate the demo brackets: a played-out Men's Singles (Ben champion → drives the
+        // profile demo) and an 8-player Open Singles draw left to be played.
+        $open = $tournament->categories()->firstWhere('name', 'Open Singles');
+        $this->seedBrackets($singles, $open, $members);
     }
 
     /**
-     * Seed a completed Men's Singles draw — two semis and a final. Ben wins the title,
-     * Coach is runner-up, Omar + Owner are semi-finalists.
+     * Generate the demo brackets idempotently (guarded per category).
+     *
+     * Men's Singles has 4 entrants (ben, omar, coach, owner); with seeding, semi 0 is ben vs
+     * owner and semi 1 is omar vs coach. Ben beats owner, Coach beats omar, then Ben beats
+     * Coach in the final → Ben is champion. Open Singles (8 entrants) is generated but unplayed.
      *
      * @param  array<string, User>  $members
      */
-    private function seedMatches(Tournament $tournament, TournamentCategory $category, array $members): void
+    private function seedBrackets(TournamentCategory $singles, ?TournamentCategory $open, array $members): void
     {
-        if (TournamentMatch::query()->exists()) {
-            return; // already seeded — keep idempotent
+        if (! TournamentMatch::where('category_id', $singles->id)->exists()) {
+            app(GenerateBracket::class)->handle($singles);
+
+            $record = app(UpdateMatchResult::class);
+            $semiOne = TournamentMatch::where('category_id', $singles->id)->where('round', 'semi_final')->where('position', 0)->first();
+            $semiTwo = TournamentMatch::where('category_id', $singles->id)->where('round', 'semi_final')->where('position', 1)->first();
+
+            $record->handle($semiOne, (int) $semiOne->player_one_id, '6-3 6-4', null);  // ben beats owner
+            $record->handle($semiTwo, (int) $semiTwo->player_two_id, '7-5 6-4', null);  // coach beats omar
+
+            $final = TournamentMatch::where('category_id', $singles->id)->where('round', 'final')->first();
+            $record->handle($final, $members['ben']->id, '6-4 3-6 6-2', null);          // ben beats coach
         }
 
-        $results = [
-            ['round' => 'semi_final', 'winner' => 'ben', 'loser' => 'omar', 'score' => '6-3 6-4'],
-            ['round' => 'semi_final', 'winner' => 'coach', 'loser' => 'owner', 'score' => '7-5 6-4'],
-            ['round' => 'final', 'winner' => 'ben', 'loser' => 'coach', 'score' => '6-4 3-6 6-2'],
-        ];
-
-        foreach ($results as $r) {
-            TournamentMatch::create([
-                'tournament_id' => $tournament->id,
-                'category_id' => $category->id,
-                'round' => $r['round'],
-                'player_one_id' => $members[$r['winner']]->id,
-                'player_two_id' => $members[$r['loser']]->id,
-                'winner_id' => $members[$r['winner']]->id,
-                'score' => $r['score'],
-                'played_at' => Carbon::now()->subDays(2),
-            ]);
+        // An 8-player draw, generated and left to be played — the full bracket visual.
+        if ($open !== null && ! TournamentMatch::where('category_id', $open->id)->exists()) {
+            app(GenerateBracket::class)->handle($open);
         }
     }
 
