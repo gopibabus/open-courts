@@ -52,16 +52,19 @@ docker compose exec tennis-web php artisan db:seed   # optional: demo platform-a
 
 | URL | What |
 | --- | --- |
-| <http://lvh.me:8080> | the app (central domain) |
-| <http://lvh.me:8080/register-club> | onboard a club |
-| `http://<slug>.lvh.me:8080` | a club workspace (e.g. after onboarding) |
-| <http://lvh.me:8080/ui> | the design-system gallery |
+| <http://localhost:8080> | the app (central domain) |
+| <http://localhost:8080/register-club> | onboard a club |
+| `http://<slug>.localhost:8080` | a club workspace (e.g. after onboarding) |
+| <http://localhost:8080/ui> | the design-system gallery |
 | <http://localhost:8025> | **Mailpit** — sent emails land here |
 
-`*.lvh.me` resolves to 127.0.0.1 with no hosts-file changes, and the session cookie is shared
-across club subdomains. To auto-seed on first boot, set `SEED_ON_START=true` in `docker/.docker.env`.
+`*.localhost` resolves to 127.0.0.1 with no hosts-file changes (macOS + modern browsers). The
+container runs `SESSION_DOMAIN=null`, so the session cookie is **host-only** — log in directly on
+the club subdomain (`<slug>.localhost:8080`), not on `localhost`. To auto-seed on first boot, set
+`SEED_ON_START=true` in `docker/.docker.env`.
 
-End-to-end against the running container: `E2E_BASE_URL=http://lvh.me:8080 npx playwright test`.
+The Playwright E2E suite targets the host dev server (`lvh.me:8000`, below) — its specs assume
+`*.lvh.me` — so the Docker container is for manual browsing rather than `npx playwright test`.
 
 ## Running locally without Docker
 
