@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Tenant;
 use App\Domains\Booking\Enums\BookingStatus;
 use App\Domains\Booking\Models\Booking;
 use App\Domains\Facilities\Models\Court;
+use App\Domains\Membership\Actions\BuildPlayerProfile;
 use App\Domains\Tournaments\Models\Team;
 use App\Domains\Tournaments\Models\Tournament;
 use App\Http\Controllers\Controller;
@@ -141,6 +142,38 @@ class DashboardController extends Controller
                 'ends_at' => $b->ends_at?->format('Y-m-d\TH:i:s'),
             ]);
 
+        // ── The signed-in member's own activity (personal section) ──
+        $myUpcoming = Booking::query()
+            ->where('status', BookingStatus::Reserved)
+            ->where('user_id', $user->id)
+            ->where('starts_at', '>=', $now)
+            ->orderBy('starts_at')
+            ->with('court:id,name')
+            ->limit(5)
+            ->get()
+            ->map(fn (Booking $b) => [
+                'id' => $b->id,
+                'court' => $b->court?->name,
+                'starts_at' => $b->starts_at?->format('Y-m-d\TH:i:s'),
+                'ends_at' => $b->ends_at?->format('Y-m-d\TH:i:s'),
+            ]);
+
+        // Reuse the player-profile derivation for the member's competitive record + activity.
+        $profile = app(BuildPlayerProfile::class)->handle($club, $user);
+        $you = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'reservations' => $myUpcoming->values(),
+            'stats' => [
+                'upcoming' => $myUpcoming->count(),
+                'bookings' => $profile['activity']['bookings'],
+                'tournaments' => $profile['activity']['tournaments'],
+                'played' => $profile['record']['played'],
+                'won' => $profile['record']['won'],
+                'titles' => $profile['record']['titles'],
+            ],
+        ];
+
         // ── Recent members (with their club-scoped roles) ──
         $recentMembers = $club->users()
             ->orderByDesc('users.id')
@@ -196,6 +229,7 @@ class DashboardController extends Controller
             'upcomingBookings' => $upcomingBookings,
             'recentMembers' => $recentMembers,
             'nextTournament' => $nextTournament,
+            'you' => $you,
         ]);
     }
 

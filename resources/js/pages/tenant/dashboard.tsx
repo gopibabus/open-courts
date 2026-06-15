@@ -57,6 +57,12 @@ interface DashboardProps {
     upcomingBookings: { id: number; court: string | null; member: string | null; starts_at: string | null; ends_at: string | null }[];
     recentMembers: { name: string; email: string; roles: string[] }[];
     nextTournament: NextTournament | null;
+    you: {
+        id: number;
+        name: string;
+        reservations: { id: number; court: string | null; starts_at: string | null; ends_at: string | null }[];
+        stats: { upcoming: number; bookings: number; tournaments: number; played: number; won: number; titles: number };
+    };
 }
 
 const chartVar = (i: number) => `var(--chart-${(i % 5) + 1})`;
@@ -73,7 +79,16 @@ function Donut({ pct }: { pct: number }) {
         <div className="relative flex size-28 shrink-0 items-center justify-center">
             <svg viewBox="0 0 100 100" className="size-28 -rotate-90">
                 <circle cx="50" cy="50" r={r} fill="none" stroke="var(--muted)" strokeWidth="11" />
-                <circle cx="50" cy="50" r={r} fill="none" stroke="var(--foreground)" strokeWidth="11" strokeLinecap="round" strokeDasharray={`${dash} ${c}`} />
+                <circle
+                    cx="50"
+                    cy="50"
+                    r={r}
+                    fill="none"
+                    stroke="var(--foreground)"
+                    strokeWidth="11"
+                    strokeLinecap="round"
+                    strokeDasharray={`${dash} ${c}`}
+                />
             </svg>
             <span className="text-display absolute text-xl">{pct}%</span>
         </div>
@@ -113,11 +128,16 @@ function WeekBars({ days }: { days: DayBookings[] }) {
             <div className="flex items-end gap-2" style={{ height: BAR_MAX + 22 }}>
                 {days.map((d) => (
                     <div key={d.date} className="flex flex-1 flex-col items-center justify-end gap-2">
-                        <div className="flex w-7 flex-col-reverse overflow-hidden rounded-sm" style={{ height: d.total > 0 ? (d.total / max) * BAR_MAX : 2 }}>
+                        <div
+                            className="flex w-7 flex-col-reverse overflow-hidden rounded-sm"
+                            style={{ height: d.total > 0 ? (d.total / max) * BAR_MAX : 2 }}
+                        >
                             {d.total > 0 ? (
                                 d.byCourt
                                     .filter((s) => s.count > 0)
-                                    .map((seg) => <div key={seg.court} style={{ flexGrow: seg.count, background: chartVar(courts.indexOf(seg.court)) }} />)
+                                    .map((seg) => (
+                                        <div key={seg.court} style={{ flexGrow: seg.count, background: chartVar(courts.indexOf(seg.court)) }} />
+                                    ))
                             ) : (
                                 <div className="bg-border h-0.5" />
                             )}
@@ -151,7 +171,11 @@ function Heatmap({ weekdays, weeks, max }: HeatmapData) {
                 {weeks.map((week, wi) => (
                     <div key={wi} className="flex gap-1">
                         {week.map((day) => (
-                            <div key={day.date} className={`size-4 rounded-[2px] ${bucket(day.count)}`} title={`${day.date}: ${day.count} booking${day.count === 1 ? '' : 's'}`} />
+                            <div
+                                key={day.date}
+                                className={`size-4 rounded-[2px] ${bucket(day.count)}`}
+                                title={`${day.date}: ${day.count} booking${day.count === 1 ? '' : 's'}`}
+                            />
                         ))}
                     </div>
                 ))}
@@ -206,7 +230,19 @@ function StatTile({ label, value, href }: { label: string; value: number; href: 
 }
 
 export default function TenantDashboard(props: DashboardProps) {
-    const { capabilities: can, stats, courtUsage, bookingsByDay, heatmap, bookingsByCourt, bookingsThisYear, upcomingBookings, recentMembers, nextTournament } = props;
+    const {
+        capabilities: can,
+        stats,
+        courtUsage,
+        bookingsByDay,
+        heatmap,
+        bookingsByCourt,
+        bookingsThisYear,
+        upcomingBookings,
+        recentMembers,
+        nextTournament,
+        you,
+    } = props;
 
     const monthDelta =
         stats.bookingsPrevMonth > 0
@@ -219,7 +255,52 @@ export default function TenantDashboard(props: DashboardProps) {
         <ClubLayout title="Dashboard">
             <h1 className="mb-6 text-2xl font-semibold tracking-tight">Dashboard</h1>
 
-            {/* Stat tiles */}
+            {/* Your activity — the signed-in member's own stats + upcoming reservations. */}
+            <section className="mb-8 space-y-3">
+                <h2 className="text-muted-foreground text-xs font-medium tracking-[0.2em] uppercase">Your activity</h2>
+                <div className="grid gap-4 lg:grid-cols-3">
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:col-span-2">
+                        <StatTile label="Upcoming" value={you.stats.upcoming} href={route('bookings.index')} />
+                        <StatTile label="Bookings" value={you.stats.bookings} href={route('bookings.index')} />
+                        <StatTile label="Tournaments" value={you.stats.tournaments} href={route('tournaments.index')} />
+                        <StatTile label="Wins" value={you.stats.won} href={route('membership.members.show', you.id)} />
+                    </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">Your reservations</CardTitle>
+                            <p className="text-muted-foreground text-xs">Your upcoming court bookings</p>
+                        </CardHeader>
+                        <CardContent>
+                            {you.reservations.length === 0 ? (
+                                <p className="text-muted-foreground text-sm">
+                                    No upcoming reservations.{' '}
+                                    {can.canBook && (
+                                        <Link href={route('bookings.index')} className="hover:underline">
+                                            Book a court →
+                                        </Link>
+                                    )}
+                                </p>
+                            ) : (
+                                <ul className="divide-border divide-y text-sm">
+                                    {you.reservations.map((r) => (
+                                        <li key={r.id} className="flex items-center justify-between gap-2 py-2 first:pt-0 last:pb-0">
+                                            <span className="truncate font-medium">{r.court ?? 'Court'}</span>
+                                            <span className="text-muted-foreground text-right text-xs">
+                                                {r.starts_at
+                                                    ? new Date(r.starts_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                                                    : ''}{' '}
+                                                · {fmtTime(r.starts_at)}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </section>
+
+            {/* Club stat tiles */}
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <StatTile label="Members" value={stats.members} href={route('membership.members.index')} />
                 <StatTile label="Courts" value={stats.courts} href={route('courts.index')} />
@@ -259,7 +340,9 @@ export default function TenantDashboard(props: DashboardProps) {
                         <div className="flex items-end gap-2">
                             <span className="text-display text-3xl leading-none">{stats.bookingsThisMonth}</span>
                             {monthDelta !== 0 && (
-                                <span className={`mb-0.5 inline-flex items-center gap-0.5 text-xs ${monthDelta >= 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                <span
+                                    className={`mb-0.5 inline-flex items-center gap-0.5 text-xs ${monthDelta >= 0 ? 'text-foreground' : 'text-muted-foreground'}`}
+                                >
                                     {monthDelta >= 0 ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
                                     {Math.abs(monthDelta)}%
                                 </span>
@@ -293,7 +376,8 @@ export default function TenantDashboard(props: DashboardProps) {
                         <div>
                             <CardTitle className="text-base">Bookings this week</CardTitle>
                             <p className="text-muted-foreground text-xs">
-                                <span className="text-display">{stats.bookingsThisWeek}</span> reserved across {stats.activeCourts} court{stats.activeCourts === 1 ? '' : 's'}
+                                <span className="text-display">{stats.bookingsThisWeek}</span> reserved across {stats.activeCourts} court
+                                {stats.activeCourts === 1 ? '' : 's'}
                             </p>
                         </div>
                         <Button asChild size="sm" variant="ghost">
@@ -334,7 +418,9 @@ export default function TenantDashboard(props: DashboardProps) {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="text-base">Tournament</CardTitle>
-                        {nextTournament && <Badge variant={nextTournament.status === 'open' ? 'default' : 'secondary'}>{nextTournament.status}</Badge>}
+                        {nextTournament && (
+                            <Badge variant={nextTournament.status === 'open' ? 'default' : 'secondary'}>{nextTournament.status}</Badge>
+                        )}
                     </CardHeader>
                     <CardContent>
                         {nextTournament ? (
@@ -416,7 +502,10 @@ export default function TenantDashboard(props: DashboardProps) {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle className="text-base">Recent members</CardTitle>
-                            <Link href={route('membership.members.index')} className="text-muted-foreground hover:text-foreground text-xs hover:underline">
+                            <Link
+                                href={route('membership.members.index')}
+                                className="text-muted-foreground hover:text-foreground text-xs hover:underline"
+                            >
                                 View all
                             </Link>
                         </CardHeader>

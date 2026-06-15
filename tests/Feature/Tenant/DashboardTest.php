@@ -37,6 +37,8 @@ class DashboardTest extends TestCase
             ->has('capabilities')
             ->has('bookingsByDay', 7)
             ->has('courtUsage')
+            ->has('you.reservations')
+            ->has('you.stats')
         );
     }
 
